@@ -13,6 +13,8 @@ cd ~/zsh_stuff
 bash setup_zsh.sh
 ```
 
+`setup_zsh.sh` now reads zsh config from `./.zshrc.template` (instead of an inline heredoc), so you can edit that template directly.
+
 ### 2. Install Configuration
 
 ```bash
@@ -95,6 +97,7 @@ The `setup_zsh.sh` script performs all these steps for you:
 12. **Hack Nerd Font** - Nerd Font with all icons for Powerlevel10k (same font used in VS Code/Cursor)
 13. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
 14. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
+15. **Template-driven zshrc** - Copies `.zshrc.template` to `~/.zshrc.new`
 
 ## Manual Setup (If You Prefer Step-by-Step)
 
