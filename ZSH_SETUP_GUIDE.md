@@ -17,15 +17,12 @@ bash setup_zsh.sh
 
 ### 2. Install Configuration
 
-```bash
-cp ~/.zshrc ~/.zshrc.backup 2>/dev/null || true
-cp ~/.zshrc.new ~/.zshrc
-```
+No manual copy step is needed when using `setup_zsh.sh`. It backs up any existing `~/.zshrc` and installs from `./.zshrc.template` automatically.
 
 ### 3. Change Default Shell
 
 ```bash
-chsh -s $(which zsh)
+chsh -s "$(command -v zsh)"
 # Enter your password when prompted
 ```
 
@@ -35,9 +32,18 @@ chsh -s $(which zsh)
 2. Enable **Custom font**
 3. Select **Hack Nerd Font** (size **11** or **12**)
 
-### 5. Restart Terminal
+### 5. Copy Tokens First
 
-Close **ALL** terminal windows and reopen. Run `p10k configure` to customize your prompt.
+Before reloading zsh, copy any missing token/export lines into `~/.zshrc.local`.
+If needed, check your backup files with `ls -1t ~/.zshrc.backup.*`.
+
+### 6. Apply the New Shell Config
+
+Use either option:
+- Start a new terminal session
+- Run `source ~/.zshrc`
+
+Then run `p10k configure` to customize your prompt.
 
 **Done! 🎉** Your terminal now has auto-suggestions, syntax highlighting, fuzzy search, and more!
 
@@ -100,7 +106,7 @@ The `setup_zsh.sh` script performs all these steps for you:
 15. **Hack Nerd Font** - Nerd Font with all icons for Powerlevel10k (same font used in VS Code/Cursor)
 16. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
 17. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
-18. **Template-driven zshrc** - Copies `.zshrc.template` to `~/.zshrc.new`
+18. **Template-driven zshrc** - Backs up existing `~/.zshrc` (if present) and installs from `.zshrc.template`
 19. **Local custom config** - Migrates matching secret exports to `~/.zshrc.local` and preserves that file across setup runs
 
 ## Manual Setup (If You Prefer Step-by-Step)
@@ -148,8 +154,8 @@ apt-cache show git-delta >/dev/null 2>&1 && sudo apt-get install -y git-delta
 
 # Create symlinks for Ubuntu-specific names
 mkdir -p ~/.local/bin
-ln -sf $(which fdfind) ~/.local/bin/fd
-ln -sf $(which batcat) ~/.local/bin/bat
+ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+ln -sf "$(command -v batcat)" ~/.local/bin/bat
 ```
 
 ### 6. Configure zsh
@@ -158,14 +164,14 @@ ln -sf $(which batcat) ~/.local/bin/bat
 # Backup existing .zshrc if it exists
 cp ~/.zshrc ~/.zshrc.backup 2>/dev/null || true
 
-# Copy the new configuration
-cp ~/.zshrc.new ~/.zshrc
+# Copy the template configuration
+cp ~/zsh_stuff/.zshrc.template ~/.zshrc
 ```
 
 ### 7. Change Default Shell
 
 ```bash
-chsh -s $(which zsh)
+chsh -s "$(command -v zsh)"
 ```
 
 Then log out and log back in.
@@ -315,7 +321,7 @@ If your terminal app still opens bash after running `chsh`:
    ```bash
    # Auto-launch zsh
    if [ -t 1 ] && command -v zsh >/dev/null 2>&1; then
-       export SHELL=$(which zsh)
+       export SHELL=$(command -v zsh)
        exec zsh
    fi
    ```

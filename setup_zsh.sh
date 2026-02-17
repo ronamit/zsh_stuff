@@ -19,6 +19,78 @@ TMUX_MARKER_BEGIN="# >>> zsh_stuff tmux defaults >>>"
 TMUX_MARKER_END="# <<< zsh_stuff tmux defaults <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template"
+APT_PACKAGES_TO_INSTALL=()
+
+apt_pkg_exists() {
+    apt-cache show "$1" &> /dev/null
+}
+
+add_pkg() {
+    local pkg="$1"
+    local existing
+    [ -z "$pkg" ] && return
+    for existing in "${APT_PACKAGES_TO_INSTALL[@]}"; do
+        [ "$existing" = "$pkg" ] && return
+    done
+    APT_PACKAGES_TO_INSTALL+=("$pkg")
+}
+
+add_pkg_if_missing_cmd() {
+    local cmd="$1"
+    local pkg="$2"
+    if ! command -v "$cmd" &> /dev/null; then
+        add_pkg "$pkg"
+    fi
+}
+
+add_best_effort_pkg_if_missing_cmd() {
+    local cmd="$1"
+    local pkg="$2"
+    if command -v "$cmd" &> /dev/null; then
+        return
+    fi
+    if apt_pkg_exists "$pkg"; then
+        add_pkg "$pkg"
+    else
+        echo "- Skipping $pkg (package not found in current apt repositories)"
+    fi
+}
+
+add_best_effort_pkg() {
+    local pkg="$1"
+    if apt_pkg_exists "$pkg"; then
+        add_pkg "$pkg"
+    else
+        echo "- Skipping $pkg (package not found in current apt repositories)"
+    fi
+}
+
+install_git_repo_if_missing() {
+    local step_label="$1"
+    local repo_url="$2"
+    local target_dir="$3"
+    local display_name="$4"
+
+    echo ""
+    echo "$step_label"
+    if [ ! -d "$target_dir" ]; then
+        git clone --depth=1 "$repo_url" "$target_dir"
+        echo "✓ $display_name installed successfully"
+    else
+        echo "✓ $display_name is already installed"
+    fi
+}
+
+create_zshrc_local_template() {
+    cat > "$HOME/.zshrc.local" << 'EOF'
+# Local customizations - not managed by setup script
+# Add your custom exports, tokens, and configurations here
+
+# export GITHUB_TOKEN="ghp_xxxxx"
+# export OPENAI_API_KEY="sk-xxxxx"
+EOF
+    echo "✓ Created ~/.zshrc.local template"
+}
 
 # Check if running on Ubuntu/Debian
 if ! command -v apt-get &> /dev/null; then
@@ -43,6 +115,21 @@ else
     echo "✓ zsh is already installed"
 fi
 
+# Bootstrap dependencies needed before remote installers/clones.
+BOOTSTRAP_PACKAGES=()
+if ! command -v curl &> /dev/null; then
+    BOOTSTRAP_PACKAGES+=("curl")
+fi
+if ! command -v git &> /dev/null; then
+    BOOTSTRAP_PACKAGES+=("git")
+fi
+if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
+    echo ""
+    echo "Installing bootstrap dependencies: ${BOOTSTRAP_PACKAGES[*]}"
+    sudo apt-get install -y "${BOOTSTRAP_PACKAGES[@]}"
+    echo "✓ Bootstrap dependencies installed"
+fi
+
 # Install Oh My Zsh
 echo ""
 echo "[3/14] Installing Oh My Zsh..."
@@ -54,125 +141,127 @@ else
 fi
 
 # Install Powerlevel10k theme
-echo ""
-echo "[4/14] Installing Powerlevel10k theme..."
 P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-if [ ! -d "$P10K_DIR" ]; then
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
-    echo "✓ Powerlevel10k installed successfully"
-else
-    echo "✓ Powerlevel10k is already installed"
-fi
+install_git_repo_if_missing \
+    "[4/14] Installing Powerlevel10k theme..." \
+    "https://github.com/romkatv/powerlevel10k.git" \
+    "$P10K_DIR" \
+    "Powerlevel10k"
 
 # Install zsh-autosuggestions
-echo ""
-echo "[5/14] Installing zsh-autosuggestions plugin..."
 AUTOSUGGEST_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
-if [ ! -d "$AUTOSUGGEST_DIR" ]; then
-    git clone https://github.com/zsh-users/zsh-autosuggestions "$AUTOSUGGEST_DIR"
-    echo "✓ zsh-autosuggestions installed successfully"
-else
-    echo "✓ zsh-autosuggestions is already installed"
-fi
+install_git_repo_if_missing \
+    "[5/14] Installing zsh-autosuggestions plugin..." \
+    "https://github.com/zsh-users/zsh-autosuggestions.git" \
+    "$AUTOSUGGEST_DIR" \
+    "zsh-autosuggestions"
 
 # Install zsh-syntax-highlighting
-echo ""
-echo "[6/14] Installing zsh-syntax-highlighting plugin..."
 SYNTAX_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
-if [ ! -d "$SYNTAX_DIR" ]; then
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$SYNTAX_DIR"
-    echo "✓ zsh-syntax-highlighting installed successfully"
-else
-    echo "✓ zsh-syntax-highlighting is already installed"
-fi
+install_git_repo_if_missing \
+    "[6/14] Installing zsh-syntax-highlighting plugin..." \
+    "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
+    "$SYNTAX_DIR" \
+    "zsh-syntax-highlighting"
 
 # Install zsh-history-substring-search
-echo ""
-echo "[7/14] Installing zsh-history-substring-search plugin..."
 HISTORY_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
-if [ ! -d "$HISTORY_DIR" ]; then
-    git clone https://github.com/zsh-users/zsh-history-substring-search "$HISTORY_DIR"
-    echo "✓ zsh-history-substring-search installed successfully"
-else
-    echo "✓ zsh-history-substring-search is already installed"
-fi
+install_git_repo_if_missing \
+    "[7/14] Installing zsh-history-substring-search plugin..." \
+    "https://github.com/zsh-users/zsh-history-substring-search.git" \
+    "$HISTORY_DIR" \
+    "zsh-history-substring-search"
 
-# Install recommended tools
+# Install required/recommended packages
 echo ""
-echo "[8/14] Installing recommended tools..."
-TOOLS_TO_INSTALL=""
+echo "[8/14] Installing required/recommended packages..."
 
-# Check for fzf
-if ! command -v fzf &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL fzf"
-fi
+# Core dependencies used directly by this setup script and zshrc template.
+add_pkg_if_missing_cmd git git
+add_pkg_if_missing_cmd curl curl
+add_pkg_if_missing_cmd wget wget
+add_pkg_if_missing_cmd unzip unzip
+add_pkg_if_missing_cmd fc-cache fontconfig
+add_pkg_if_missing_cmd xdg-open xdg-utils
 
-# Check for fd-find (fd)
+# CLI tools used by aliases/functions.
+add_pkg_if_missing_cmd fzf fzf
 if ! command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL fd-find"
+    add_pkg "fd-find"
 fi
-
-# Check for bat
 if ! command -v bat &> /dev/null && ! command -v batcat &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL bat"
+    add_pkg "bat"
+fi
+add_pkg_if_missing_cmd tree tree
+add_pkg_if_missing_cmd tmux tmux
+add_pkg_if_missing_cmd rg ripgrep
+
+# Ensure one port-inspection backend for `ports()`.
+if ! command -v ss &> /dev/null && ! command -v netstat &> /dev/null; then
+    add_best_effort_pkg iproute2
+    add_best_effort_pkg net-tools
 fi
 
-# Check for tree
-if ! command -v tree &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL tree"
-fi
-
-# Check for tmux
-if ! command -v tmux &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL tmux"
-fi
-
-# Check for ripgrep (rg)
-if ! command -v rg &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL ripgrep"
-fi
-
-# Check for eza (best effort: not available in all Ubuntu/Debian repos)
-if ! command -v eza &> /dev/null; then
-    if apt-cache show eza &> /dev/null; then
-        TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL eza"
+# Python quality-of-life for venv aliases and `python` command.
+if ! command -v python &> /dev/null; then
+    if apt_pkg_exists python-is-python3; then
+        add_pkg "python-is-python3"
     else
-        echo "- Skipping eza (package not found in current apt repositories)"
+        add_best_effort_pkg python3
     fi
 fi
+add_best_effort_pkg_if_missing_cmd pip3 python3-pip
+add_best_effort_pkg python3-venv
 
-# Check for delta (best effort package name on Debian/Ubuntu is git-delta)
+# Archive helpers used by extract().
+add_best_effort_pkg_if_missing_cmd 7z p7zip-full
+if ! command -v unrar &> /dev/null; then
+    if apt_pkg_exists unrar; then
+        add_pkg "unrar"
+    elif apt_pkg_exists unrar-free; then
+        add_pkg "unrar-free"
+    else
+        echo "- Skipping unrar/unrar-free (package not found in current apt repositories)"
+    fi
+fi
+add_best_effort_pkg_if_missing_cmd uncompress ncompress
+
+# Oh My Zsh command-not-found plugin backend.
+add_best_effort_pkg_if_missing_cmd command-not-found command-not-found
+
+# Powerlevel10k + font install prerequisites.
+add_best_effort_pkg fonts-powerline
+
+# Optional enhancements.
+add_best_effort_pkg_if_missing_cmd eza eza
 if ! command -v delta &> /dev/null; then
-    if apt-cache show git-delta &> /dev/null; then
-        TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL git-delta"
-    else
-        echo "- Skipping git-delta (package not found in current apt repositories)"
-    fi
+    add_best_effort_pkg git-delta
 fi
 
-# Clipboard tools for tmux copy-mode integration (install best effort)
+# Clipboard tools for tmux copy-mode integration.
 if ! command -v xclip &> /dev/null && ! command -v wl-copy &> /dev/null; then
-    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL xclip wl-clipboard"
+    add_best_effort_pkg xclip
+    add_best_effort_pkg wl-clipboard
 fi
 
-if [ -n "$TOOLS_TO_INSTALL" ]; then
+if [ "${#APT_PACKAGES_TO_INSTALL[@]}" -gt 0 ]; then
     echo ""
-    sudo apt-get install -y $TOOLS_TO_INSTALL
-    echo "✓ Recommended tools installed"
+    echo "Installing packages: ${APT_PACKAGES_TO_INSTALL[*]}"
+    sudo apt-get install -y "${APT_PACKAGES_TO_INSTALL[@]}"
+    echo "✓ Required/recommended packages installed"
 else
-    echo "✓ All recommended tools are already installed"
+    echo "✓ All required/recommended packages are already installed"
 fi
 
 # Create symlinks for Ubuntu-specific tool names
+mkdir -p "$HOME/.local/bin"
 if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
-    mkdir -p ~/.local/bin
-    ln -sf $(which fdfind) ~/.local/bin/fd
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
     echo "✓ Created 'fd' symlink for fdfind"
 fi
 
 if command -v batcat &> /dev/null && ! command -v bat &> /dev/null; then
-    mkdir -p ~/.local/bin
-    ln -sf $(which batcat) ~/.local/bin/bat
+    ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
     echo "✓ Created 'bat' symlink for batcat"
 fi
 
@@ -244,21 +333,21 @@ fi
 echo ""
 echo "[10/14] Installing Nerd Fonts (Hack Nerd Font)..."
 echo ""
-sudo apt-get install -y fonts-powerline wget unzip
-mkdir -p ~/.local/share/fonts
-cd ~/.local/share/fonts
+mkdir -p "$HOME/.local/share/fonts"
 
-if [ ! -f "Hack Regular Nerd Font Complete.ttf" ]; then
-    echo "Downloading Hack Nerd Font..."
-    wget -q https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip
-    unzip -q -o Hack.zip
-    rm -f Hack.zip
+if [ ! -f "$HOME/.local/share/fonts/Hack Regular Nerd Font Complete.ttf" ]; then
+    (
+        cd "$HOME/.local/share/fonts"
+        echo "Downloading Hack Nerd Font..."
+        wget -q https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip
+        unzip -q -o Hack.zip
+        rm -f Hack.zip
+    )
     fc-cache -fv > /dev/null 2>&1
     echo "✓ Hack Nerd Font installed"
 else
     echo "✓ Hack Nerd Font already installed"
 fi
-cd ~
 
 # Migrate custom exports from existing ~/.zshrc into ~/.zshrc.local
 echo ""
@@ -275,37 +364,20 @@ elif [ -f "$HOME/.zshrc" ]; then
         cat "$HOME/.zshrc.local"
     else
         # Create a starter local config when no matching exports were found.
-        cat > "$HOME/.zshrc.local" << 'EOF'
-# Local customizations - not managed by setup script
-# Add your custom exports, tokens, and configurations here
-
-# export GITHUB_TOKEN="ghp_xxxxx"
-# export OPENAI_API_KEY="sk-xxxxx"
-EOF
-        echo "✓ Created ~/.zshrc.local template"
+        create_zshrc_local_template
     fi
 else
-    cat > "$HOME/.zshrc.local" << 'EOF'
-# Local customizations - not managed by setup script
-# Add your custom exports, tokens, and configurations here
-
-# export GITHUB_TOKEN="ghp_xxxxx"
-# export OPENAI_API_KEY="sk-xxxxx"
-EOF
-    echo "✓ Created ~/.zshrc.local template"
+    create_zshrc_local_template
 fi
 
-# Create custom .zshrc configuration
+# Validate zshrc template
 echo ""
-echo "[12/14] Creating custom .zshrc configuration..."
+echo "[12/14] Validating zshrc template..."
 if [ ! -f "$ZSHRC_TEMPLATE" ]; then
     echo "Error: Missing zshrc template at $ZSHRC_TEMPLATE"
     exit 1
 fi
-
-cp "$ZSHRC_TEMPLATE" "$HOME/.zshrc.new"
-
-echo "✓ Created ~/.zshrc.new with custom configuration"
+echo "✓ Using template at $ZSHRC_TEMPLATE"
 
 # Backup existing ~/.zshrc and install the new one automatically
 echo ""
@@ -315,13 +387,13 @@ if [ -f "$HOME/.zshrc" ]; then
     cp "$HOME/.zshrc" "$BACKUP_PATH"
     echo "✓ Backed up existing ~/.zshrc to $BACKUP_PATH"
 fi
-cp "$HOME/.zshrc.new" "$HOME/.zshrc"
-echo "✓ Installed new ~/.zshrc"
+cp "$ZSHRC_TEMPLATE" "$HOME/.zshrc"
+echo "✓ Installed ~/.zshrc from template"
 
 # Change default shell to zsh automatically when possible
 if command -v chsh &> /dev/null; then
     CURRENT_SHELL=$(getent passwd "$USER" | cut -d: -f7)
-    ZSH_PATH=$(which zsh)
+    ZSH_PATH=$(command -v zsh)
     if [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
         echo ""
         echo "Attempting to set default shell to zsh..."
@@ -344,7 +416,7 @@ if ! grep -q "Auto-launch zsh" ~/.bashrc; then
 
 # Auto-launch zsh if available (added for zsh setup)
 if [ -t 1 ] && command -v zsh >/dev/null 2>&1; then
-    export SHELL=$(which zsh)
+    export SHELL=$(command -v zsh)
     exec zsh
 fi
 EOF
@@ -361,20 +433,21 @@ echo ""
 echo "Everything possible was configured automatically."
 echo "Final steps:"
 echo ""
-echo "1. Close ALL terminal windows and reopen"
-echo "   - Terminal should now start in zsh automatically"
-echo "   - Powerlevel10k will prompt you to configure (or run: p10k configure)"
-echo ""
-echo "2. Use ~/.zshrc.local for your personal exports/tokens"
+echo "1. Copy personal exports/tokens into ~/.zshrc.local first"
 echo "   - This file is never overwritten by the setup script"
 if [ -n "${BACKUP_PATH:-}" ]; then
-    echo "   - Existing ~/.zshrc backup created at:"
+    echo "   - Existing ~/.zshrc backup:"
     echo "       $BACKUP_PATH"
     echo "   - If any token exports are missing, copy them from that backup into ~/.zshrc.local"
 else
     echo "   - If you had a previous ~/.zshrc, check backups with:"
     echo "       ls -1t ~/.zshrc.backup.*"
 fi
+echo ""
+echo "2. Apply the new zsh config"
+echo "   - Option A: Start a new terminal session"
+echo "   - Option B: Run: source ~/.zshrc"
+echo "   - Then run: p10k configure (optional)"
 echo ""
 echo "Documentation: ~/zsh_stuff/ZSH_SETUP_GUIDE.md"
 echo "======================================================================"
