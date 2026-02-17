@@ -35,8 +35,8 @@ zstyle ':omz:update' frequency 13
 # Uncomment the following line to disable auto-setting terminal title.
 # DISABLE_AUTO_TITLE="true"
 
-# Uncomment the following line to enable command auto-correction.
-ENABLE_CORRECTION="true"
+# Keep command auto-correction off to avoid interactive "correct ... [nyae]?" prompts.
+ENABLE_CORRECTION="false"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
 # You can also set it to another string to have that shown instead of the default red dots.
@@ -132,6 +132,21 @@ typeset -U path PATH
 [[ -d "$HOME/bin" ]] && path=("$HOME/bin" $path)
 export PATH
 
+# Open a URL/path with the first available system opener.
+_open_default() {
+    local target="$1"
+    if command -v xdg-open &> /dev/null; then
+        xdg-open "$target" >/dev/null 2>&1 &
+    elif command -v open &> /dev/null; then
+        open "$target" >/dev/null 2>&1 &
+    elif command -v wslview &> /dev/null; then
+        wslview "$target" >/dev/null 2>&1 &
+    else
+        echo "No URL opener found (xdg-open/open/wslview)."
+        return 1
+    fi
+}
+
 # ======================================================================
 # Backward-Compatibility Shortcuts
 # ======================================================================
@@ -200,12 +215,8 @@ alias egrep='egrep --color=auto'
 alias df='df -h'      # Human-readable sizes
 alias du='du -h'      # Human-readable sizes
 alias free='free -h'  # Human-readable sizes
-alias ports='netstat -tulanp' # Show open ports
 alias myip='curl -s ifconfig.me' # Get external IP
 alias localip='hostname -I | awk "{print \$1}"' # Get local IP
-
-# File manager
-alias f='xdg-open .'  # Open current directory in file manager
 
 # Safety nets
 alias chown='chown --preserve-root'
@@ -296,17 +307,19 @@ pr() {
     }
 
     if echo "$repo_url" | grep -qi "gitlab"; then
+        local mr_url="${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}"
         # If glab exists, use it (cleanest solution)
         if command -v glab >/dev/null 2>&1; then
             if ! glab mr create --web >/dev/null 2>&1; then
-                xdg-open "${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}" 2>/dev/null
+                _open_default "$mr_url" || echo "$mr_url"
             fi
         else
-            xdg-open "${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}" 2>/dev/null
+            _open_default "$mr_url" || echo "$mr_url"
         fi
     else
         # Default to GitHub-style PR
-        xdg-open "${repo_url}/pull/new/${branch}" 2>/dev/null
+        local pr_url="${repo_url}/pull/new/${branch}"
+        _open_default "$pr_url" || echo "$pr_url"
     fi
 }
 
@@ -338,7 +351,7 @@ _venv_auto_activate() {
     else
         # Check if we've left the directory with the venv
         local venv_dir="${VIRTUAL_ENV%/*}"
-        if [[ "$PWD" != "$venv_dir"* ]]; then
+        if [[ "$PWD/" != "$venv_dir/"* ]]; then
             deactivate 2>/dev/null
         fi
     fi
@@ -394,6 +407,23 @@ ff() {
 # Find text in files
 ftext() {
     grep -rnw . -e "$1" 2>/dev/null
+}
+
+# Show listening ports/processes using whichever tool is installed.
+ports() {
+    if command -v ss &> /dev/null; then
+        ss -tulanp
+    elif command -v netstat &> /dev/null; then
+        netstat -tulanp
+    else
+        echo "No supported port tool found (install iproute2 or net-tools)."
+        return 1
+    fi
+}
+
+# Open current directory in the default file manager.
+f() {
+    _open_default "."
 }
 
 # Create directory and cd into it
