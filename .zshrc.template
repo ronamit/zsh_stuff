@@ -89,11 +89,14 @@ ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('www.*' 'fg=cyan,underline')
 
-source $ZSH/oh-my-zsh.sh
+if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
+  source "$ZSH/oh-my-zsh.sh"
+fi
 
 # Fallback: ensure syntax-highlighting is loaded even if plugin loading is skipped.
 if (( ! $+functions[_zsh_highlight] )); then
-  source "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  _zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
 fi
 
 # Make command syntax colors explicit (useful when terminal/theme colors are subtle).
@@ -108,12 +111,8 @@ ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
-# Preferred editor for local and remote sessions
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='nano'
-else
-  export EDITOR='nano'
-fi
+# Preferred editor
+export EDITOR='nano'
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
@@ -127,15 +126,11 @@ fi
 # CUSTOM CONFIGURATION
 # ======================================================================
 
-# Add ~/.local/bin to PATH if it exists
-if [ -d "$HOME/.local/bin" ]; then
-    export PATH="$HOME/.local/bin:$PATH"
-fi
-
-# Keep ~/bin support for older personal helper scripts.
-if [ -d "$HOME/bin" ]; then
-    export PATH="$HOME/bin:$PATH"
-fi
+# Keep PATH unique while prepending user bins.
+typeset -U path PATH
+[[ -d "$HOME/.local/bin" ]] && path=("$HOME/.local/bin" $path)
+[[ -d "$HOME/bin" ]] && path=("$HOME/bin" $path)
+export PATH
 
 # ======================================================================
 # Backward-Compatibility Shortcuts
@@ -235,15 +230,29 @@ alias cdg='cd $(git rev-parse --show-toplevel 2>/dev/null || pwd)'
 
 # Interactive branch switcher with fzf
 if command -v fzf &> /dev/null; then
-    alias gbr='git branch | fzf | xargs git checkout'
+    unalias gbr 2>/dev/null
+    function gbr {
+        local branch
+        branch=$(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null | fzf) || return
+        [[ -n "$branch" ]] && git checkout "$branch"
+    }
 fi
 
 # Delete current branch and return to main/master
 branch_bye() {
-    local current_branch=$(git symbolic-ref --short HEAD)
-    local main_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
-    [ -z "$main_branch" ] && main_branch="main"
-    git checkout $main_branch && git branch -D $current_branch
+    local current_branch main_branch
+    current_branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || {
+        echo "Not on a local branch"
+        return 1
+    }
+    main_branch=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    [[ -z "$main_branch" ]] && main_branch=$(git branch --list main master 2>/dev/null | sed 's/^[* ]*//' | head -n1)
+    [[ -z "$main_branch" ]] && main_branch="main"
+    if [[ "$current_branch" == "$main_branch" ]]; then
+        echo "Already on '$main_branch'"
+        return 1
+    fi
+    git checkout "$main_branch" && git branch -D "$current_branch"
 }
 
 # Open PR page in browser
@@ -257,20 +266,41 @@ pr() {
         return 1
     fi
 
-    # Normalize SSH → HTTPS
     local repo_url
-    repo_url=$(echo "$remote_url" \
-        | sed -e 's/\.git$//' \
-              -e 's|git@|https://|' \
-              -e 's|:|/|')
+    case "$remote_url" in
+        git@*:*)
+            local host_and_path host repo_path
+            host_and_path="${remote_url#git@}"
+            host="${host_and_path%%:*}"
+            repo_path="${host_and_path#*:}"
+            repo_url="https://${host}/${repo_path}"
+            repo_url="${repo_url%.git}"
+            ;;
+        ssh://git@*)
+            repo_url="https://${remote_url#ssh://git@}"
+            repo_url="${repo_url%.git}"
+            ;;
+        http://*|https://*)
+            repo_url="${remote_url%.git}"
+            ;;
+        *)
+            echo "Unsupported remote URL format: $remote_url"
+            return 1
+            ;;
+    esac
 
     local branch
-    branch=$(git symbolic-ref --short HEAD)
+    branch=$(git symbolic-ref --quiet --short HEAD) || {
+        echo "Not on a local branch"
+        return 1
+    }
 
     if echo "$repo_url" | grep -qi "gitlab"; then
         # If glab exists, use it (cleanest solution)
         if command -v glab >/dev/null 2>&1; then
-            glab mr create --web
+            if ! glab mr create --web >/dev/null 2>&1; then
+                xdg-open "${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}" 2>/dev/null
+            fi
         else
             xdg-open "${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}" 2>/dev/null
         fi
@@ -314,6 +344,7 @@ _venv_auto_activate() {
     fi
 }
 add-zsh-hook chpwd _venv_auto_activate
+_venv_auto_activate
 
 # ======================================================================
 # FZF Configuration
@@ -434,26 +465,28 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 
-# History substring search: bind terminfo keys first for tmux/terminal compatibility.
-[[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
-[[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^[OA' history-substring-search-up
-bindkey '^[OB' history-substring-search-down
+if [[ -o interactive ]]; then
+    # History substring search: bind terminfo keys first for tmux/terminal compatibility.
+    [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
+    [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
+    bindkey '^[[A' history-substring-search-up
+    bindkey '^[[B' history-substring-search-down
+    bindkey '^[OA' history-substring-search-up
+    bindkey '^[OB' history-substring-search-down
 
-# Best-practice autosuggestion/completion behavior:
-# - Tab keeps completion menu.
-# - Right Arrow uses `forward-char` (accepts suggestion at end of line).
-# - End uses `end-of-line` (accepts suggestion at end of line).
-bindkey '^I' expand-or-complete
-bindkey '^ ' autosuggest-accept        # Ctrl+Space
-bindkey '^@' autosuggest-accept        # Ctrl+Space in tmux/some terminals
-bindkey '^[[C' forward-char            # Right Arrow
-bindkey '^[OC' forward-char            # Right Arrow (application mode)
-bindkey '^[[F' end-of-line             # End
-bindkey '^[OF' end-of-line             # End (application mode)
-# bindkey '^[[B' autosuggest-accept    # Down Arrow (optional, overrides history search)
+    # Best-practice autosuggestion/completion behavior:
+    # - Tab keeps completion menu.
+    # - Right Arrow uses `forward-char` (accepts suggestion at end of line).
+    # - End uses `end-of-line` (accepts suggestion at end of line).
+    bindkey '^I' expand-or-complete
+    bindkey '^ ' autosuggest-accept        # Ctrl+Space
+    bindkey '^@' autosuggest-accept        # Ctrl+Space in tmux/some terminals
+    bindkey '^[[C' forward-char            # Right Arrow
+    bindkey '^[OC' forward-char            # Right Arrow (application mode)
+    bindkey '^[[F' end-of-line             # End
+    bindkey '^[OF' end-of-line             # End (application mode)
+    # bindkey '^[[B' autosuggest-accept    # Down Arrow (optional, overrides history search)
+fi
 
 # ======================================================================
 # Pyenv configuration (if installed)
