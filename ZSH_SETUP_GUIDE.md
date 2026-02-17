@@ -13,7 +13,7 @@ cd ~/zsh_stuff
 bash setup_zsh.sh
 ```
 
-`setup_zsh.sh` now reads zsh config from `./.zshrc.template` (instead of an inline heredoc), so you can edit that template directly.
+`setup_zsh.sh` now reads zsh config from `./.zshrc.template` (instead of an inline heredoc), and sources `~/.zshrc.local` for personal settings.
 
 ### 2. Install Configuration
 
@@ -101,6 +101,7 @@ The `setup_zsh.sh` script performs all these steps for you:
 16. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
 17. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
 18. **Template-driven zshrc** - Copies `.zshrc.template` to `~/.zshrc.new`
+19. **Local custom config** - Migrates matching secret exports to `~/.zshrc.local` and preserves that file across setup runs
 
 ## Manual Setup (If You Prefer Step-by-Step)
 
@@ -276,10 +277,15 @@ p10k configure
 ### Edit Your Configuration
 
 ```bash
-# Open in your preferred editor
-micro ~/.zshrc
+# Project-managed defaults (tracked in this repo)
+micro ~/zsh_stuff/.zshrc.template
 # or
-nano ~/.zshrc
+nano ~/zsh_stuff/.zshrc.template
+
+# Personal/local settings (never overwritten by setup script)
+micro ~/.zshrc.local
+# or
+nano ~/.zshrc.local
 
 # Reload after changes
 source ~/.zshrc
@@ -289,7 +295,7 @@ reload
 
 ### Add Custom Aliases
 
-Add your custom aliases and functions to the end of `~/.zshrc`.
+Add your custom aliases, exports, and tokens to `~/.zshrc.local`.
 
 ## Troubleshooting
 
@@ -467,5 +473,5 @@ Print this section or keep it handy while you learn zsh!
 1. Explore the available aliases: type `alias` to see all
 2. Learn FZF shortcuts (Ctrl+R is amazing!)
 3. Customize the theme with `p10k configure`
-4. Add your own custom functions and aliases to the end of `~/.zshrc`
+4. Add your own custom functions, aliases, and exports to `~/.zshrc.local`
 5. Enjoy your new shell! 🎉

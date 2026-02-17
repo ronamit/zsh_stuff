@@ -28,13 +28,13 @@ fi
 
 # Update package lists
 echo ""
-echo "[1/13] Updating package lists..."
+echo "[1/14] Updating package lists..."
 echo ""
 sudo apt-get update
 
 # Install zsh
 echo ""
-echo "[2/13] Installing zsh..."
+echo "[2/14] Installing zsh..."
 if ! command -v zsh &> /dev/null; then
     echo ""
     sudo apt-get install -y zsh
@@ -45,7 +45,7 @@ fi
 
 # Install Oh My Zsh
 echo ""
-echo "[3/13] Installing Oh My Zsh..."
+echo "[3/14] Installing Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     echo "✓ Oh My Zsh installed successfully"
@@ -55,7 +55,7 @@ fi
 
 # Install Powerlevel10k theme
 echo ""
-echo "[4/13] Installing Powerlevel10k theme..."
+echo "[4/14] Installing Powerlevel10k theme..."
 P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 if [ ! -d "$P10K_DIR" ]; then
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
@@ -66,7 +66,7 @@ fi
 
 # Install zsh-autosuggestions
 echo ""
-echo "[5/13] Installing zsh-autosuggestions plugin..."
+echo "[5/14] Installing zsh-autosuggestions plugin..."
 AUTOSUGGEST_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
 if [ ! -d "$AUTOSUGGEST_DIR" ]; then
     git clone https://github.com/zsh-users/zsh-autosuggestions "$AUTOSUGGEST_DIR"
@@ -77,7 +77,7 @@ fi
 
 # Install zsh-syntax-highlighting
 echo ""
-echo "[6/13] Installing zsh-syntax-highlighting plugin..."
+echo "[6/14] Installing zsh-syntax-highlighting plugin..."
 SYNTAX_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
 if [ ! -d "$SYNTAX_DIR" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$SYNTAX_DIR"
@@ -88,7 +88,7 @@ fi
 
 # Install zsh-history-substring-search
 echo ""
-echo "[7/13] Installing zsh-history-substring-search plugin..."
+echo "[7/14] Installing zsh-history-substring-search plugin..."
 HISTORY_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
 if [ ! -d "$HISTORY_DIR" ]; then
     git clone https://github.com/zsh-users/zsh-history-substring-search "$HISTORY_DIR"
@@ -99,7 +99,7 @@ fi
 
 # Install recommended tools
 echo ""
-echo "[8/13] Installing recommended tools..."
+echo "[8/14] Installing recommended tools..."
 TOOLS_TO_INSTALL=""
 
 # Check for fzf
@@ -178,7 +178,7 @@ fi
 
 # Configure tmux defaults
 echo ""
-echo "[9/13] Configuring tmux defaults..."
+echo "[9/14] Configuring tmux defaults..."
 TMUX_BLOCK=$(cat << 'EOF'
 # >>> zsh_stuff tmux defaults >>>
 # Sensible tmux defaults for better scrolling/history/copy behavior.
@@ -242,7 +242,7 @@ fi
 
 # Install Nerd Fonts for Powerlevel10k
 echo ""
-echo "[10/13] Installing Nerd Fonts (Hack Nerd Font)..."
+echo "[10/14] Installing Nerd Fonts (Hack Nerd Font)..."
 echo ""
 sudo apt-get install -y fonts-powerline wget unzip
 mkdir -p ~/.local/share/fonts
@@ -260,9 +260,44 @@ else
 fi
 cd ~
 
+# Migrate custom exports from existing ~/.zshrc into ~/.zshrc.local
+echo ""
+echo "[11/14] Migrating custom content to ~/.zshrc.local..."
+
+if [ -f "$HOME/.zshrc.local" ]; then
+    echo "✓ ~/.zshrc.local already exists; leaving it unchanged"
+elif [ -f "$HOME/.zshrc" ]; then
+    # Extract likely secret exports to a user-managed config file.
+    grep -E "^export ([A-Za-z_][A-Za-z0-9_]*_(TOKEN|KEY)|TOKEN|API_KEY|AWS_[A-Za-z0-9_]*|GITHUB_[A-Za-z0-9_]*)=" "$HOME/.zshrc" > "$HOME/.zshrc.local" 2>/dev/null || true
+
+    if [ -s "$HOME/.zshrc.local" ]; then
+        echo "✓ Migrated custom exports to ~/.zshrc.local"
+        cat "$HOME/.zshrc.local"
+    else
+        # Create a starter local config when no matching exports were found.
+        cat > "$HOME/.zshrc.local" << 'EOF'
+# Local customizations - not managed by setup script
+# Add your custom exports, tokens, and configurations here
+
+# export GITHUB_TOKEN="ghp_xxxxx"
+# export OPENAI_API_KEY="sk-xxxxx"
+EOF
+        echo "✓ Created ~/.zshrc.local template"
+    fi
+else
+    cat > "$HOME/.zshrc.local" << 'EOF'
+# Local customizations - not managed by setup script
+# Add your custom exports, tokens, and configurations here
+
+# export GITHUB_TOKEN="ghp_xxxxx"
+# export OPENAI_API_KEY="sk-xxxxx"
+EOF
+    echo "✓ Created ~/.zshrc.local template"
+fi
+
 # Create custom .zshrc configuration
 echo ""
-echo "[11/13] Creating custom .zshrc configuration..."
+echo "[12/14] Creating custom .zshrc configuration..."
 if [ ! -f "$ZSHRC_TEMPLATE" ]; then
     echo "Error: Missing zshrc template at $ZSHRC_TEMPLATE"
     exit 1
@@ -274,7 +309,7 @@ echo "✓ Created ~/.zshrc.new with custom configuration"
 
 # Backup existing ~/.zshrc and install the new one automatically
 echo ""
-echo "[12/13] Installing ~/.zshrc (with backup)..."
+echo "[13/14] Installing ~/.zshrc (with backup)..."
 if [ -f "$HOME/.zshrc" ]; then
     BACKUP_PATH="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
     cp "$HOME/.zshrc" "$BACKUP_PATH"
@@ -303,7 +338,7 @@ fi
 
 # Add auto-launch zsh to .bashrc
 echo ""
-echo "[13/13] Configuring .bashrc to auto-launch zsh..."
+echo "[14/14] Configuring .bashrc to auto-launch zsh..."
 if ! grep -q "Auto-launch zsh" ~/.bashrc; then
     cat >> ~/.bashrc << 'EOF'
 
@@ -324,34 +359,22 @@ echo "Installation Complete!"
 echo "======================================================================"
 echo ""
 echo "Everything possible was configured automatically."
-echo "Manual steps (if needed):"
+echo "Final steps:"
 echo ""
-echo "1. Configure Terminal to use Hack Nerd Font:"
-echo "   - Open Terminal → Edit → Preferences → Profiles → Text"
-echo "   - Enable 'Custom font'"
-echo "   - Select 'Hack Nerd Font' or 'Hack Regular Nerd Font Complete' with size 11 or 12"
-echo ""
-echo "2. Close ALL terminal windows and reopen"
+echo "1. Close ALL terminal windows and reopen"
 echo "   - Terminal should now start in zsh automatically"
 echo "   - Powerlevel10k will prompt you to configure (or run: p10k configure)"
 echo ""
-echo "Tmux quick start:"
-echo "  - Create or attach to a named session:"
-echo "      tmux new -A -s session_name"
-echo "  - List sessions:"
-echo "      tmux ls"
-echo "  - Kill a session from outside:"
-echo "      tmux kill-session -t session_name"
-echo "  - Kill current session from inside tmux:"
-echo "      tmux kill-session"
-echo "  - Reload tmux config:"
-echo "      tmux source-file ~/.tmux.conf"
-echo ""
-echo "Copy tip (iTerm2): hold Option while dragging to select/copy text."
-echo ""
-echo "Optional tools you can install manually:"
-echo "  - micro (text editor): sudo apt-get install micro"
-echo "  - pyenv: curl https://pyenv.run | bash"
+echo "2. Use ~/.zshrc.local for your personal exports/tokens"
+echo "   - This file is never overwritten by the setup script"
+if [ -n "${BACKUP_PATH:-}" ]; then
+    echo "   - Existing ~/.zshrc backup created at:"
+    echo "       $BACKUP_PATH"
+    echo "   - If any token exports are missing, copy them from that backup into ~/.zshrc.local"
+else
+    echo "   - If you had a previous ~/.zshrc, check backups with:"
+    echo "       ls -1t ~/.zshrc.backup.*"
+fi
 echo ""
 echo "Documentation: ~/zsh_stuff/ZSH_SETUP_GUIDE.md"
 echo "======================================================================"
