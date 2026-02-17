@@ -91,13 +91,16 @@ The `setup_zsh.sh` script performs all these steps for you:
 8. **fd** (fd-find) - Fast alternative to `find`
 9. **bat** (batcat) - Better `cat` with syntax highlighting
 10. **tree** - Directory tree viewer
+11. **ripgrep** (`rg`) - Fast recursive search
+12. **eza** - Modern `ls` replacement (installed when available in apt repos)
+13. **git-delta** (`delta`) - Better `git diff` pager (installed when available in apt repos)
 
 ### Fonts & Configuration
-11. **fonts-powerline** - Base powerline fonts
-12. **Hack Nerd Font** - Nerd Font with all icons for Powerlevel10k (same font used in VS Code/Cursor)
-13. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
-14. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
-15. **Template-driven zshrc** - Copies `.zshrc.template` to `~/.zshrc.new`
+14. **fonts-powerline** - Base powerline fonts
+15. **Hack Nerd Font** - Nerd Font with all icons for Powerlevel10k (same font used in VS Code/Cursor)
+16. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
+17. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
+18. **Template-driven zshrc** - Copies `.zshrc.template` to `~/.zshrc.new`
 
 ## Manual Setup (If You Prefer Step-by-Step)
 
@@ -136,7 +139,11 @@ git clone https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM
 ### 5. Install Recommended Tools
 
 ```bash
-sudo apt-get install -y fzf fd-find bat tree
+sudo apt-get install -y fzf fd-find bat tree ripgrep
+
+# Optional on some Ubuntu/Debian releases:
+apt-cache show eza >/dev/null 2>&1 && sudo apt-get install -y eza
+apt-cache show git-delta >/dev/null 2>&1 && sudo apt-get install -y git-delta
 
 # Create symlinks for Ubuntu-specific names
 mkdir -p ~/.local/bin

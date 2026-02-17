@@ -127,6 +127,29 @@ if ! command -v tmux &> /dev/null; then
     TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL tmux"
 fi
 
+# Check for ripgrep (rg)
+if ! command -v rg &> /dev/null; then
+    TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL ripgrep"
+fi
+
+# Check for eza (best effort: not available in all Ubuntu/Debian repos)
+if ! command -v eza &> /dev/null; then
+    if apt-cache show eza &> /dev/null; then
+        TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL eza"
+    else
+        echo "- Skipping eza (package not found in current apt repositories)"
+    fi
+fi
+
+# Check for delta (best effort package name on Debian/Ubuntu is git-delta)
+if ! command -v delta &> /dev/null; then
+    if apt-cache show git-delta &> /dev/null; then
+        TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL git-delta"
+    else
+        echo "- Skipping git-delta (package not found in current apt repositories)"
+    fi
+fi
+
 # Clipboard tools for tmux copy-mode integration (install best effort)
 if ! command -v xclip &> /dev/null && ! command -v wl-copy &> /dev/null; then
     TOOLS_TO_INSTALL="$TOOLS_TO_INSTALL xclip wl-clipboard"
@@ -166,8 +189,10 @@ setw -g pane-base-index 1
 set -g renumber-windows on
 set -g set-clipboard on
 set -g xterm-keys on
+set -g status-position top
 # Improve Ctrl/Alt key handling in modern terminals.
 set -as terminal-features ',*:extkeys'
+bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
 
 # Vim-style keys in copy mode.
 setw -g mode-keys vi
