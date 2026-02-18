@@ -1,483 +1,160 @@
-# ZSH Setup Guide for Ubuntu
+# ZSH Setup Guide (Ubuntu/Debian)
 
-Complete guide to switch from bash to zsh with Oh My Zsh, Powerlevel10k theme, and powerful plugins.
+This guide is for the automated flow in this repo. Use `setup_zsh.sh`; do not manually install each component unless you are debugging.
 
----
-
-## 🚀 Quick Start (5 Minutes)
-
-### 1. Run Setup Script
+## 1. Run Setup
 
 ```bash
 cd ~/zsh_stuff
 bash setup_zsh.sh
 ```
 
-`setup_zsh.sh` now reads zsh config from `./.zshrc.template` (instead of an inline heredoc), and sources `~/.zshrc.local` for personal settings.
+Notes:
 
-### 2. Install Configuration
+- Requires `apt-get` (Ubuntu/Debian).
+- Uses `sudo` for package operations.
+- Safe to re-run; existing plugin/theme repos are reused.
 
-No manual copy step is needed when using `setup_zsh.sh`. It backs up any existing `~/.zshrc` and installs from `./.zshrc.template` automatically.
+## 2. What the Script Configures Automatically
 
-### 3. Change Default Shell
+`setup_zsh.sh` handles the full baseline setup:
 
-```bash
-chsh -s "$(command -v zsh)"
-# Enter your password when prompted
-```
+- Installs: `zsh`, Oh My Zsh, Powerlevel10k.
+- Installs plugins:
+  - `zsh-autosuggestions`
+  - `zsh-history-substring-search`
+  - `zsh-syntax-highlighting`
+  - `zsh-autocomplete`
+- Installs required/recommended CLI packages via `apt` (optional packages are best-effort).
+- Installs Hack Nerd Font to `~/.local/share/fonts` and refreshes font cache.
+- Adds/updates a managed tmux block in `~/.tmux.conf`.
+- Backs up existing `~/.zshrc` to `~/.zshrc.backup.<timestamp>`.
+- Installs `~/.zshrc` from `./.zshrc.template`.
+- Creates/preserves `~/.zshrc.local` for personal settings.
+- Attempts to migrate likely token exports from old `~/.zshrc` to `~/.zshrc.local`.
+- Attempts `chsh -s "$(command -v zsh)"`.
+- Adds `.bashrc` fallback auto-launch so terminals still enter zsh even when `chsh` is not applied.
 
-### 4. Configure Terminal Font
+## 3. Manual Steps After Setup
 
-1. Terminal → **Edit** → **Preferences** → **Profiles** → **Text**
-2. Enable **Custom font**
-3. Select **Hack Nerd Font** (size **11** or **12**)
-
-### 5. Copy Tokens First
-
-Before reloading zsh, copy any missing token/export lines into `~/.zshrc.local`.
-If needed, check your backup files with `ls -1t ~/.zshrc.backup.*`.
-
-### 6. Apply the New Shell Config
-
-Use either option:
-- Start a new terminal session
-- Run `source ~/.zshrc`
-
-Then run `p10k configure` to customize your prompt.
-
-**Done! 🎉** Your terminal now has auto-suggestions, syntax highlighting, fuzzy search, and more!
-
-### Most Useful Features
-
-**Fuzzy Search:**
-- `Ctrl+R` - Search command history
-- `Ctrl+T` - Search files
-- `Alt+C` - Search directories
-
-**Auto-suggestions:**
-- Start typing and see suggestions in gray
-- `Tab` - Normal completion menu
-- `→` or `End` - Accept full suggestion
-- `Ctrl+Space` - Accept full suggestion (explicit accept key)
-- `↑` / `↓` - History substring search (can feel like autocomplete)
-
-**Git Shortcuts:**
-- `gst` - git status
-- `gaa` - git add all
-- `gcmsg 'msg'` - commit
-- `gp` - git push
-
-**Navigation:**
-- `..` / `...` - Go up 1/2 directories
-- `-` - Previous directory
-- `z <pattern>` - Jump to frequently used directory
-
-**Python:**
-- `v` - Activate .venv
-- Auto-activates when you `cd` into projects
-
----
-
-## What the Setup Script Does Automatically
-
-The `setup_zsh.sh` script performs all these steps for you:
-
-### Core Components
-1. **zsh** - The Z shell
-2. **Oh My Zsh** - Framework for managing zsh configuration
-3. **Powerlevel10k** - Modern, feature-rich prompt theme
-
-### Plugins
-4. **zsh-autosuggestions** - Fish-like autosuggestions as you type
-5. **zsh-syntax-highlighting** - Syntax highlighting for commands
-6. **zsh-history-substring-search** - Better history search
-
-### Tools & Utilities
-7. **fzf** - Fuzzy finder (Ctrl+R for history, Ctrl+T for files)
-8. **fd** (fd-find) - Fast alternative to `find`
-9. **bat** (batcat) - Better `cat` with syntax highlighting
-10. **tree** - Directory tree viewer
-11. **ripgrep** (`rg`) - Fast recursive search
-12. **eza** - Modern `ls` replacement (installed when available in apt repos)
-13. **git-delta** (`delta`) - Better `git diff` pager (installed when available in apt repos)
-
-### Fonts & Configuration
-14. **fonts-powerline** - Base powerline fonts
-15. **Hack Nerd Font** - Nerd Font with all icons for Powerlevel10k (same font used in VS Code/Cursor)
-16. **Symlinks** - Creates `fd` and `bat` symlinks for Ubuntu's `fdfind` and `batcat`
-17. **Auto-launch** - Adds zsh auto-launch to `.bashrc` (fixes terminal app issues)
-18. **Template-driven zshrc** - Backs up existing `~/.zshrc` (if present) and installs from `.zshrc.template`
-19. **Local custom config** - Migrates matching secret exports to `~/.zshrc.local` and preserves that file across setup runs
-
-## Manual Setup (If You Prefer Step-by-Step)
-
-### 1. Install zsh
+1. Set terminal font to `Hack Nerd Font`.
+2. Review `~/.zshrc.local` and add any missing tokens/exports.
+3. Apply config:
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y zsh
+source ~/.zshrc
 ```
 
-### 2. Install Oh My Zsh
-
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
-### 3. Install Powerlevel10k Theme
-
-```bash
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-```
-
-### 4. Install Plugins
-
-```bash
-# zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-
-# zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-
-# zsh-history-substring-search
-git clone https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
-```
-
-### 5. Install Recommended Tools
-
-```bash
-sudo apt-get install -y fzf fd-find bat tree ripgrep
-
-# Optional on some Ubuntu/Debian releases:
-apt-cache show eza >/dev/null 2>&1 && sudo apt-get install -y eza
-apt-cache show git-delta >/dev/null 2>&1 && sudo apt-get install -y git-delta
-
-# Create symlinks for Ubuntu-specific names
-mkdir -p ~/.local/bin
-ln -sf "$(command -v fdfind)" ~/.local/bin/fd
-ln -sf "$(command -v batcat)" ~/.local/bin/bat
-```
-
-### 6. Configure zsh
-
-```bash
-# Backup existing .zshrc if it exists
-cp ~/.zshrc ~/.zshrc.backup 2>/dev/null || true
-
-# Copy the template configuration
-cp ~/zsh_stuff/.zshrc.template ~/.zshrc
-```
-
-### 7. Change Default Shell
-
-```bash
-chsh -s "$(command -v zsh)"
-```
-
-Then log out and log back in.
-
-### 8. Install Hack Nerd Font (Recommended)
-
-```bash
-sudo apt-get install -y fonts-powerline wget unzip
-mkdir -p ~/.local/share/fonts
-cd ~/.local/share/fonts
-
-# Download Hack Nerd Font
-wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip
-unzip -o Hack.zip
-rm Hack.zip
-
-# Refresh font cache
-fc-cache -fv
-
-cd ~
-```
-
-**Configure Terminal to use Hack Nerd Font:**
-1. Terminal → Edit → Preferences → Profiles → Text
-2. Enable "Custom font"
-3. Select "Hack Nerd Font" or "Hack Regular Nerd Font Complete"
-4. Size: 11 or 12
-
-This matches your VS Code/Cursor font for a consistent development environment!
-
-## Optional Tools
-
-### micro (Terminal text editor)
-
-```bash
-sudo apt-get install -y micro
-```
-
-### pyenv (Python version management)
-
-```bash
-# Install dependencies
-sudo apt-get update
-sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
-    libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
-    libffi-dev liblzma-dev
-
-# Install pyenv
-curl https://pyenv.run | bash
-```
-
-## Key Features of Your New Setup
-
-### Directory Navigation
-- `..` - Go up one directory
-- `...` - Go up two directories
-- `-` - Go to previous directory
-- `z <pattern>` - Jump to frequently visited directory matching pattern
-- `d` - Show directory stack
-
-### File Operations
-- `ll` - Detailed list view
-- `lt` - Tree view
-- `f` - Open current directory in file manager
-- `ff <name>` - Find files by name
-- `ftext <text>` - Find text in files
-
-### Git Shortcuts
-- `gst` - git status
-- `gaa` - git add all
-- `gcmsg` - git commit with message
-- `gl` - git pull
-- `gp` - git push
-- `gco` - git checkout
-- `cdg` - Go to git repository root
-- `glp` - Pretty git log
-- `pr` - Open PR page in browser
-
-### Python Development
-- `v` - Activate .venv in current directory
-- `pyrun <module>` - Run Python module
-- Auto-activation of virtualenvs when entering project directories
-
-### FZF Shortcuts
-- `Ctrl+R` - Fuzzy search command history
-- `Ctrl+T` - Fuzzy search files
-- `Alt+C` - Fuzzy search directories
-
-### Autosuggestions
-- Type a command and see suggestions from history in gray
-- `Tab` - Normal completion (`expand-or-complete`)
-- `→` (right arrow) - Accept full suggestion (`forward-char` at end-of-line)
-- `End` - Accept full suggestion (`end-of-line` at end-of-line)
-- `Ctrl+Space` - Accept full suggestion (`autosuggest-accept`)
-- `↑` / `↓` - History substring search
-- Optional: map `↓` to `autosuggest-accept` if you prefer full accept on Down Arrow
-
-## Configuration Tips
-
-### Customize Powerlevel10k
-
-Run the configuration wizard anytime:
+4. Optional prompt tuning:
 
 ```bash
 p10k configure
 ```
 
-### Edit Your Configuration
+## 4. Autosuggestions and Combined Completion
+
+Current behavior from `.zshrc.template`:
+
+- Ghost suggestion strategy: `ZSH_AUTOSUGGEST_STRATEGY=(history completion)`.
+- Ghost suggestion length cap: `ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80`.
+- Combined interactive menu (history + files + options) via `zsh-autocomplete` when installed.
+
+Important distinction:
+
+- Ghost text shows one inline suggestion at a time.
+- The combined menu shows multiple candidates you can move through.
+
+Default keys:
+
+- `Tab`: normal completion menu (`expand-or-complete`).
+- `Right Arrow`, `End`, `Ctrl+Space`: accept ghost suggestion.
+- `Up/Down`: history substring search.
+- `Ctrl+P/Ctrl+N`: previous/next history substring match.
+
+## 5. Where to Customize
+
+- Project defaults (tracked): `~/zsh_stuff/.zshrc.template`
+- Personal/local (not overwritten): `~/.zshrc.local`
+
+Recommended workflow:
 
 ```bash
-# Project-managed defaults (tracked in this repo)
-micro ~/zsh_stuff/.zshrc.template
-# or
+# edit tracked defaults
 nano ~/zsh_stuff/.zshrc.template
 
-# Personal/local settings (never overwritten by setup script)
-micro ~/.zshrc.local
-# or
+# edit local secrets/personal overrides
 nano ~/.zshrc.local
 
-# Reload after changes
+# apply current shell changes
 source ~/.zshrc
-# or
-reload
 ```
 
-### Add Custom Aliases
+## 6. Updating This Environment
 
-Add your custom aliases, exports, and tokens to `~/.zshrc.local`.
-
-## Troubleshooting
-
-### Terminal Still Opens Bash Instead of Zsh
-
-If your terminal app still opens bash after running `chsh`:
-
-1. **Verify the default shell was changed:**
-   ```bash
-   grep $USER /etc/passwd | tail -1
-   # Should end with /usr/bin/zsh
-   ```
-
-2. **The setup script already added auto-launch to .bashrc**, so just close ALL terminal windows and reopen. The terminal will start bash briefly, then immediately switch to zsh.
-
-3. **If that doesn't work**, manually add this to the end of `~/.bashrc`:
-   ```bash
-   # Auto-launch zsh
-   if [ -t 1 ] && command -v zsh >/dev/null 2>&1; then
-       export SHELL=$(command -v zsh)
-       exec zsh
-   fi
-   ```
-
-### Symbols/Icons Not Displaying (Boxes or Question Marks)
-
-1. **Install Hack Nerd Font** (the setup script does this automatically)
-2. **Configure your terminal** to use the font:
-   - Terminal → Edit → Preferences → Profiles → Text
-   - Enable "Custom font"
-   - Select "Hack Nerd Font" or "Hack Regular Nerd Font Complete" size 11-12
-3. **Close all terminals and reopen**
-4. Test with: `echo "\ue0b0 \uf526 \ue0a0 \uf418"`
-
-**Note:** This is the same font used in VS Code/Cursor, so your terminal and editor will have a consistent look!
-
-### Theme Not Loading
-
-Make sure your terminal supports 256 colors and has a compatible font installed. Powerlevel10k will prompt you to install recommended fonts during `p10k configure`.
-
-### Slow Startup
-
-Run the profiler to identify slow components:
+When this repo changes:
 
 ```bash
-# Uncomment the zprof lines in ~/.zshrc
-# Then restart terminal and check output
+cd ~/zsh_stuff
+git pull
+bash setup_zsh.sh
 ```
 
-### Completions Not Working
+This reapplies managed config safely and creates a fresh `~/.zshrc` backup before replacing it.
 
-Rebuild the completion cache:
+## 7. Troubleshooting
+
+### Terminal still starts in bash
+
+- Close all terminal windows and reopen.
+- Verify default shell:
+
+```bash
+getent passwd "$USER" | cut -d: -f7
+```
+
+- If needed, run manually:
+
+```bash
+chsh -s "$(command -v zsh)"
+```
+
+### Prompt icons look broken
+
+- Confirm terminal profile font is `Hack Nerd Font`.
+- Restart terminal after changing font.
+
+### Completions behave oddly
+
+Rebuild completion cache:
 
 ```bash
 rm -f ~/.zcompdump
-compinit
+autoload -Uz compinit && compinit
 ```
 
-### Autosuggestion Keys Don’t Match This Guide
+### Key bindings differ in your terminal
 
-Terminal emulators can send different key codes, so `→`, `Ctrl+Space`, `End`, `↑`, and `↓` may behave differently from one machine to another.
-
-Use this default mapping (already in `setup_zsh.sh`):
-
-```zsh
-# History search with arrows (terminfo first for tmux compatibility)
-[[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
-[[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^[OA' history-substring-search-up
-bindkey '^[OB' history-substring-search-down
-
-# Completion + autosuggest accept
-bindkey '^I' expand-or-complete
-bindkey '^ ' autosuggest-accept
-bindkey '^@' autosuggest-accept
-bindkey '^[[C' forward-char
-bindkey '^[OC' forward-char
-bindkey '^[[F' end-of-line
-bindkey '^[OF' end-of-line
-# bindkey '^[[B' autosuggest-accept  # optional: Down Arrow accepts full suggestion
-```
-
-If a key still behaves unexpectedly, run `cat -v`, press that key, then use the printed sequence in `bindkey`.
-
-### Virtual Environment Not Auto-Activating
-
-The smart venv activation looks for `.venv` or `venv` directories. Make sure your virtual environment follows this naming convention.
-
-## Reverting to Bash
-
-If you want to switch back to bash:
+Check what key sequence your terminal sends:
 
 ```bash
-chsh -s $(which bash)
+cat -v
 ```
 
-Then log out and log back in.
+Press the key, then bind that sequence in `.zshrc.template` with `bindkey`.
 
-## Additional Resources
+## 8. Roll Back
 
-- [Oh My Zsh Documentation](https://github.com/ohmyzsh/ohmyzsh/wiki)
-- [Powerlevel10k Documentation](https://github.com/romkatv/powerlevel10k)
+Restore a backup if needed:
+
+```bash
+ls -1t ~/.zshrc.backup.*
+cp ~/.zshrc.backup.<timestamp> ~/.zshrc
+source ~/.zshrc
+```
+
+## References
+
+- [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh/wiki)
+- [Powerlevel10k](https://github.com/romkatv/powerlevel10k)
 - [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
-- [FZF Documentation](https://github.com/junegunn/fzf)
-
-## Quick Reference Card
-
-Print this section or keep it handy while you learn zsh!
-
-### Essential Shortcuts
-- `Ctrl+R` - Fuzzy search command history (FZF)
-- `Ctrl+T` - Fuzzy search files (FZF)
-- `Alt+C` - Fuzzy search directories (FZF)
-- `Tab` - Completion
-- `→` / `End` - Accept full autosuggestion
-- `Ctrl+Space` - Accept full autosuggestion
-- `↑` / `↓` - History substring search
-
-### Directory Navigation
-- `..` / `...` / `....` - Go up 1/2/3 directories
-- `-` - Previous directory
-- `z <pattern>` - Jump to frequently visited directory
-- `d` - Show directory stack
-- `cdg` - Go to git repository root
-
-### File Operations
-- `ll` - Detailed list view
-- `lt` - Tree view
-- `f` - Open current directory in file manager
-- `ff <name>` - Find files by name
-- `ftext <text>` - Search text in files
-
-### Git Shortcuts
-- `gst` - git status
-- `gaa` - git add all
-- `gcmsg 'message'` - git commit
-- `gl` - git pull
-- `gp` - git push
-- `gco <branch>` - git checkout
-- `glp` - Pretty git log
-- `gbr` - Interactive branch switcher (FZF)
-- `pr` - Open PR page in browser
-- `branch_bye` - Delete current branch, return to main
-
-### Python Development
-- `v` - Activate .venv
-- `pyrun <module>` - Run Python module
-- `psync` - Poetry sync
-- `plock` - Poetry lock and install
-
-### Connectivity & Utilities
-- `vpn-connect` - Connect VPN (`~/vpn/vpn-connect.sh`)
-- `vpn-status` - Check VPN status
-- `vpn-disconnect` - Disconnect VPN
-- `localip` - Show local LAN IP
-- `myip` - Show public IP
-- `ssha` - Add an SSH key to ssh-agent
-- `ssha-default` - Add `~/.ssh/id_rsa` to ssh-agent
-
-### Shell Management
-- `reload` - Reload .zshrc
-- `cc` - Clear terminal screen
-- `cls` - Alternate clear shortcut
-- `h` - Show shell history
-- `path` - Print PATH one entry per line
-- `tm` - Attach/create tmux session `main`
-- `tm <name_or_number>` - Attach/create named tmux session (example: `tm 0`)
-- `alias` - Show all aliases
-- `p10k configure` - Reconfigure theme
-
-## Next Steps
-
-1. Explore the available aliases: type `alias` to see all
-2. Learn FZF shortcuts (Ctrl+R is amazing!)
-3. Customize the theme with `p10k configure`
-4. Add your own custom functions, aliases, and exports to `~/.zshrc.local`
-5. Enjoy your new shell! 🎉
+- [zsh-autocomplete](https://github.com/marlonrichert/zsh-autocomplete)

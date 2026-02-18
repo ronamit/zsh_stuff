@@ -89,6 +89,12 @@ ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('www.*' 'fg=cyan,underline')
 
+# Optional combined live menu (history + files + options).
+# Enable by installing:
+#   ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete
+_zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+[[ -r "$_zsh_autocomplete_plugin" ]] && source "$_zsh_autocomplete_plugin"
+
 if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
   source "$ZSH/oh-my-zsh.sh"
 fi
@@ -492,7 +498,7 @@ setopt HIST_VERIFY               # Do not execute immediately upon history expan
 
 # Autosuggestion configuration
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 
 if [[ -o interactive ]]; then
@@ -503,6 +509,8 @@ if [[ -o interactive ]]; then
     bindkey '^[[B' history-substring-search-down
     bindkey '^[OA' history-substring-search-up
     bindkey '^[OB' history-substring-search-down
+    bindkey '^P' history-substring-search-up
+    bindkey '^N' history-substring-search-down
 
     # Best-practice autosuggestion/completion behavior:
     # - Tab keeps completion menu.

@@ -100,13 +100,13 @@ fi
 
 # Update package lists
 echo ""
-echo "[1/14] Updating package lists..."
+echo "[1/15] Updating package lists..."
 echo ""
 sudo apt-get update
 
 # Install zsh
 echo ""
-echo "[2/14] Installing zsh..."
+echo "[2/15] Installing zsh..."
 if ! command -v zsh &> /dev/null; then
     echo ""
     sudo apt-get install -y zsh
@@ -132,7 +132,7 @@ fi
 
 # Install Oh My Zsh
 echo ""
-echo "[3/14] Installing Oh My Zsh..."
+echo "[3/15] Installing Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     echo "✓ Oh My Zsh installed successfully"
@@ -143,7 +143,7 @@ fi
 # Install Powerlevel10k theme
 P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 install_git_repo_if_missing \
-    "[4/14] Installing Powerlevel10k theme..." \
+    "[4/15] Installing Powerlevel10k theme..." \
     "https://github.com/romkatv/powerlevel10k.git" \
     "$P10K_DIR" \
     "Powerlevel10k"
@@ -151,7 +151,7 @@ install_git_repo_if_missing \
 # Install zsh-autosuggestions
 AUTOSUGGEST_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
 install_git_repo_if_missing \
-    "[5/14] Installing zsh-autosuggestions plugin..." \
+    "[5/15] Installing zsh-autosuggestions plugin..." \
     "https://github.com/zsh-users/zsh-autosuggestions.git" \
     "$AUTOSUGGEST_DIR" \
     "zsh-autosuggestions"
@@ -159,7 +159,7 @@ install_git_repo_if_missing \
 # Install zsh-syntax-highlighting
 SYNTAX_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
 install_git_repo_if_missing \
-    "[6/14] Installing zsh-syntax-highlighting plugin..." \
+    "[6/15] Installing zsh-syntax-highlighting plugin..." \
     "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
     "$SYNTAX_DIR" \
     "zsh-syntax-highlighting"
@@ -167,14 +167,22 @@ install_git_repo_if_missing \
 # Install zsh-history-substring-search
 HISTORY_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search"
 install_git_repo_if_missing \
-    "[7/14] Installing zsh-history-substring-search plugin..." \
+    "[7/15] Installing zsh-history-substring-search plugin..." \
     "https://github.com/zsh-users/zsh-history-substring-search.git" \
     "$HISTORY_DIR" \
     "zsh-history-substring-search"
 
+# Install zsh-autocomplete (combined interactive menu: history + files + options)
+AUTOCOMPLETE_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete"
+install_git_repo_if_missing \
+    "[8/15] Installing zsh-autocomplete plugin..." \
+    "https://github.com/marlonrichert/zsh-autocomplete.git" \
+    "$AUTOCOMPLETE_DIR" \
+    "zsh-autocomplete"
+
 # Install required/recommended packages
 echo ""
-echo "[8/14] Installing required/recommended packages..."
+echo "[9/15] Installing required/recommended packages..."
 
 # Core dependencies used directly by this setup script and zshrc template.
 add_pkg_if_missing_cmd git git
@@ -267,7 +275,7 @@ fi
 
 # Configure tmux defaults
 echo ""
-echo "[9/14] Configuring tmux defaults..."
+echo "[10/15] Configuring tmux defaults..."
 TMUX_BLOCK=$(cat << 'EOF'
 # >>> zsh_stuff tmux defaults >>>
 # Sensible tmux defaults for better scrolling/history/copy behavior.
@@ -331,7 +339,7 @@ fi
 
 # Install Nerd Fonts for Powerlevel10k
 echo ""
-echo "[10/14] Installing Nerd Fonts (Hack Nerd Font)..."
+echo "[11/15] Installing Nerd Fonts (Hack Nerd Font)..."
 echo ""
 mkdir -p "$HOME/.local/share/fonts"
 
@@ -351,7 +359,7 @@ fi
 
 # Migrate custom exports from existing ~/.zshrc into ~/.zshrc.local
 echo ""
-echo "[11/14] Migrating custom content to ~/.zshrc.local..."
+echo "[12/15] Migrating custom content to ~/.zshrc.local..."
 
 if [ -f "$HOME/.zshrc.local" ]; then
     echo "✓ ~/.zshrc.local already exists; leaving it unchanged"
@@ -372,7 +380,7 @@ fi
 
 # Validate zshrc template
 echo ""
-echo "[12/14] Validating zshrc template..."
+echo "[13/15] Validating zshrc template..."
 if [ ! -f "$ZSHRC_TEMPLATE" ]; then
     echo "Error: Missing zshrc template at $ZSHRC_TEMPLATE"
     exit 1
@@ -381,7 +389,7 @@ echo "✓ Using template at $ZSHRC_TEMPLATE"
 
 # Backup existing ~/.zshrc and install the new one automatically
 echo ""
-echo "[13/14] Installing ~/.zshrc (with backup)..."
+echo "[14/15] Installing ~/.zshrc (with backup)..."
 if [ -f "$HOME/.zshrc" ]; then
     BACKUP_PATH="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
     cp "$HOME/.zshrc" "$BACKUP_PATH"
@@ -410,7 +418,7 @@ fi
 
 # Add auto-launch zsh to .bashrc
 echo ""
-echo "[14/14] Configuring .bashrc to auto-launch zsh..."
+echo "[15/15] Configuring .bashrc to auto-launch zsh..."
 if ! grep -q "Auto-launch zsh" ~/.bashrc; then
     cat >> ~/.bashrc << 'EOF'
 
