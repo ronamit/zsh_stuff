@@ -381,10 +381,10 @@ if command -v fzf &> /dev/null; then
         --layout=reverse
         --border
         --inline-info
-        --color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9
-        --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9
-        --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6
-        --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4
+        --color=fg:#4b5563,bg:#f8fafc,hl:#0ea5e9
+        --color=fg+:#475569,bg+:#e2e8f0,hl+:#0284c7
+        --color=info:#f59e0b,prompt:#22c55e,pointer:#ec4899
+        --color=marker:#db2777,spinner:#f59e0b,header:#3b82f6
     '
 
     # Preview with bat if available
