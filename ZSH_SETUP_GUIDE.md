@@ -142,6 +142,26 @@ rm -f ~/.zcompdump
 autoload -Uz compinit && compinit
 ```
 
+### Powerlevel10k warning about console output and unhandled widgets
+
+If you see warnings like:
+
+- `zsh-syntax-highlighting: unhandled ZLE widget 'menu-search'`
+- `zsh-syntax-highlighting: unhandled ZLE widget 'recent-paths'`
+
+use the updated config from this repo and restart zsh:
+
+```bash
+cd ~/zsh_stuff
+git pull
+bash setup_zsh.sh
+exec zsh
+```
+
+This setup keeps `zsh-syntax-highlighting` loaded late and sets
+`skip_global_compinit=1` in `~/.zshenv` for Ubuntu compatibility with
+`zsh-autocomplete`.
+
 ### Key bindings differ in your terminal
 
 Check what key sequence your terminal sends:
