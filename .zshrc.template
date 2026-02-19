@@ -535,7 +535,12 @@ if [[ -o interactive ]]; then
     zle -N down-line-or-beginning-search
 
     if (( _zsh_autocomplete_loaded )); then
-        # Keep zsh-autocomplete defaults for Tab/Shift+Tab/Up/Down menu navigation.
+        # Keep zsh-autocomplete menu cycling on Tab/Shift+Tab even when plugins
+        # (like fzf) remap Tab.
+        bindkey '^I' menu-complete
+        [[ -n "${terminfo[kcbt]-}" ]] && bindkey "${terminfo[kcbt]}" reverse-menu-complete
+        bindkey '^[[Z' reverse-menu-complete
+
         # Use Ctrl+P/Ctrl+N for sticky prefix-only history search.
         bindkey '^P' _history_prefix_search_up
         bindkey '^N' _history_prefix_search_down
