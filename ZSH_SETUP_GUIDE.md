@@ -158,9 +158,10 @@ bash setup_zsh.sh
 exec zsh
 ```
 
-This setup keeps `zsh-syntax-highlighting` loaded late and sets
-`skip_global_compinit=1` in `~/.zshenv` for Ubuntu compatibility with
-`zsh-autocomplete`.
+This setup sets `skip_global_compinit=1` in `~/.zshenv` and applies a
+zsh-version-aware load order for `zsh-syntax-highlighting`:
+- zsh `<5.9`: load before autocomplete widgets (compatibility mode).
+- zsh `>=5.9`: load late (normal recommended order).
 
 ### Key bindings differ in your terminal
 

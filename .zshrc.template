@@ -62,8 +62,19 @@ HIST_STAMPS="yyyy-mm-dd"
 # Optional combined live menu (history + files + options).
 # NOTE: zsh-autocomplete should be sourced near the top before compdef/compinit users.
 _zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+_zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 typeset -gi _zsh_autocomplete_loaded=0
 [[ -r "$_zsh_autocomplete_plugin" ]] && _zsh_autocomplete_loaded=1
+typeset -gi _zsh_legacy_highlight_mode=0
+autoload -Uz is-at-least
+if ! is-at-least 5.9; then
+    _zsh_legacy_highlight_mode=1
+fi
+
+# zsh<=5.8 compatibility: load syntax-highlighting before autocomplete widgets.
+if (( _zsh_legacy_highlight_mode )) && (( ! $+functions[_zsh_highlight] )); then
+    [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
+fi
 
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
@@ -561,7 +572,6 @@ fi
 
 # Load syntax-highlighting as late as possible to avoid unhandled widget warnings.
 if (( ! $+functions[_zsh_highlight] )); then
-    _zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
     [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
 fi
 
