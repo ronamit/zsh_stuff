@@ -20,19 +20,21 @@ p10k configure
 
 ## What `setup_zsh.sh` Does Automatically
 
-- Installs and configures `zsh`, Oh My Zsh, and Powerlevel10k.
+- Installs missing `zsh`, Oh My Zsh, and Powerlevel10k.
 - Installs plugins:
   - `zsh-autosuggestions`
   - `zsh-history-substring-search`
   - `zsh-syntax-highlighting`
   - `zsh-autocomplete` (combined history/files/options menu)
 - Installs required/recommended CLI tools via `apt` (best-effort for optional packages).
-- Installs Hack Nerd Font and refreshes font cache.
+- Installs Hack Nerd Font and refreshes font cache when font is not already present.
 - Adds or updates a managed tmux defaults block in `~/.tmux.conf`.
 - Backs up existing `~/.zshrc` and installs from `.zshrc.template`.
+- Ensures `~/.zshenv` contains `skip_global_compinit=1` for Ubuntu + zsh-autocomplete compatibility.
 - Creates or preserves `~/.zshrc.local` and migrates likely token exports when possible.
 - Attempts to set default shell to zsh and adds a `.bashrc` fallback auto-launch.
 - Creates Ubuntu compatibility symlinks (`fd` for `fdfind`, `bat` for `batcat`) when needed.
+- Skips apt refresh/download/install work when preexisting tools/packages are already available.
 
 ## What You Still Need to Do
 

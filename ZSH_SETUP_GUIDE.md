@@ -30,10 +30,12 @@ Notes:
 - Adds/updates a managed tmux block in `~/.tmux.conf`.
 - Backs up existing `~/.zshrc` to `~/.zshrc.backup.<timestamp>`.
 - Installs `~/.zshrc` from `./.zshrc.template`.
+- Ensures `~/.zshenv` includes `skip_global_compinit=1` (Ubuntu compatibility for zsh-autocomplete).
 - Creates/preserves `~/.zshrc.local` for personal settings.
 - Attempts to migrate likely token exports from old `~/.zshrc` to `~/.zshrc.local`.
 - Attempts `chsh -s "$(command -v zsh)"`.
 - Adds `.bashrc` fallback auto-launch so terminals still enter zsh even when `chsh` is not applied.
+- Skips package/download steps when tools, plugins, or fonts are already present.
 
 ## 3. Manual Steps After Setup
 
@@ -66,10 +68,18 @@ Important distinction:
 
 Default keys:
 
-- `Tab`: normal completion menu (`expand-or-complete`).
-- `Right Arrow`, `End`, `Ctrl+Space`: accept ghost suggestion.
-- `Up/Down`: history substring search.
-- `Ctrl+P/Ctrl+N`: previous/next history substring match.
+- With `zsh-autocomplete` installed:
+  - completions show while typing.
+  - `Tab`/`Shift+Tab`: next/previous completion.
+  - `Up`/`Down`: handled by zsh-autocomplete (menu/history behavior can vary by terminal keycodes).
+  - `Ctrl+P/Ctrl+N`: previous/next prefix history match.
+  - `Right Arrow`/`End`: accept autosuggestion at end of line.
+- Without `zsh-autocomplete`:
+  - `Tab`: normal completion menu (`expand-or-complete`).
+  - with completion menu open: `Tab`/`Shift+Tab` move next/previous option.
+  - with completion menu open: `Up/Down` scroll options.
+  - `Ctrl+Space`: accept autosuggestion.
+  - `Up/Down`: prefix-only history search.
 
 ## 5. Where to Customize
 

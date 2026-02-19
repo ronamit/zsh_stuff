@@ -20,15 +20,40 @@ TMUX_MARKER_END="# <<< zsh_stuff tmux defaults <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template"
 APT_PACKAGES_TO_INSTALL=()
+APT_INDEX_REFRESHED=0
+
+apt_update_once() {
+    if [ "$APT_INDEX_REFRESHED" -eq 0 ]; then
+        echo ""
+        echo "Refreshing apt package index..."
+        sudo apt-get update
+        APT_INDEX_REFRESHED=1
+    fi
+}
+
+pkg_is_installed() {
+    local pkg="$1"
+    dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"
+}
 
 apt_pkg_exists() {
-    apt-cache show "$1" &> /dev/null
+    local pkg="$1"
+    if apt-cache show "$pkg" &> /dev/null; then
+        return 0
+    fi
+    if [ "$APT_INDEX_REFRESHED" -eq 0 ]; then
+        apt_update_once
+        apt-cache show "$pkg" &> /dev/null
+        return
+    fi
+    return 1
 }
 
 add_pkg() {
     local pkg="$1"
     local existing
     [ -z "$pkg" ] && return
+    pkg_is_installed "$pkg" && return
     for existing in "${APT_PACKAGES_TO_INSTALL[@]}"; do
         [ "$existing" = "$pkg" ] && return
     done
@@ -49,6 +74,9 @@ add_best_effort_pkg_if_missing_cmd() {
     if command -v "$cmd" &> /dev/null; then
         return
     fi
+    if pkg_is_installed "$pkg"; then
+        return
+    fi
     if apt_pkg_exists "$pkg"; then
         add_pkg "$pkg"
     else
@@ -58,6 +86,9 @@ add_best_effort_pkg_if_missing_cmd() {
 
 add_best_effort_pkg() {
     local pkg="$1"
+    if pkg_is_installed "$pkg"; then
+        return
+    fi
     if apt_pkg_exists "$pkg"; then
         add_pkg "$pkg"
     else
@@ -92,23 +123,36 @@ EOF
     echo "✓ Created ~/.zshrc.local template"
 }
 
+has_hack_nerd_font() {
+    if command -v fc-list &> /dev/null && fc-list 2>/dev/null | grep -qi 'Hack Nerd Font'; then
+        return 0
+    fi
+    compgen -G "$HOME/.local/share/fonts/Hack*Nerd*Font*.ttf" > /dev/null && return 0
+    compgen -G "$HOME/.local/share/fonts/Hack*Nerd*Font*.otf" > /dev/null && return 0
+    return 1
+}
+
 # Check if running on Ubuntu/Debian
 if ! command -v apt-get &> /dev/null; then
     echo "Error: This script is designed for Ubuntu/Debian systems"
     exit 1
 fi
 
-# Update package lists
+# Refresh apt metadata only if required for installs.
 echo ""
-echo "[1/15] Updating package lists..."
-echo ""
-sudo apt-get update
+echo "[1/15] Preparing apt package metadata..."
+if ! command -v zsh &> /dev/null || ! command -v curl &> /dev/null || ! command -v git &> /dev/null; then
+    apt_update_once
+else
+    echo "✓ Skipping apt metadata refresh (zsh/curl/git already installed)"
+fi
 
 # Install zsh
 echo ""
 echo "[2/15] Installing zsh..."
 if ! command -v zsh &> /dev/null; then
     echo ""
+    apt_update_once
     sudo apt-get install -y zsh
     echo "✓ zsh installed successfully"
 else
@@ -126,6 +170,7 @@ fi
 if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
     echo ""
     echo "Installing bootstrap dependencies: ${BOOTSTRAP_PACKAGES[*]}"
+    apt_update_once
     sudo apt-get install -y "${BOOTSTRAP_PACKAGES[@]}"
     echo "✓ Bootstrap dependencies installed"
 fi
@@ -255,6 +300,7 @@ fi
 if [ "${#APT_PACKAGES_TO_INSTALL[@]}" -gt 0 ]; then
     echo ""
     echo "Installing packages: ${APT_PACKAGES_TO_INSTALL[*]}"
+    apt_update_once
     sudo apt-get install -y "${APT_PACKAGES_TO_INSTALL[@]}"
     echo "✓ Required/recommended packages installed"
 else
@@ -343,7 +389,7 @@ echo "[11/15] Installing Nerd Fonts (Hack Nerd Font)..."
 echo ""
 mkdir -p "$HOME/.local/share/fonts"
 
-if [ ! -f "$HOME/.local/share/fonts/Hack Regular Nerd Font Complete.ttf" ]; then
+if ! has_hack_nerd_font; then
     (
         cd "$HOME/.local/share/fonts"
         echo "Downloading Hack Nerd Font..."
@@ -354,7 +400,7 @@ if [ ! -f "$HOME/.local/share/fonts/Hack Regular Nerd Font Complete.ttf" ]; then
     fc-cache -fv > /dev/null 2>&1
     echo "✓ Hack Nerd Font installed"
 else
-    echo "✓ Hack Nerd Font already installed"
+    echo "✓ Hack Nerd Font already installed (skipping download)"
 fi
 
 # Migrate custom exports from existing ~/.zshrc into ~/.zshrc.local
@@ -397,6 +443,28 @@ if [ -f "$HOME/.zshrc" ]; then
 fi
 cp "$ZSHRC_TEMPLATE" "$HOME/.zshrc"
 echo "✓ Installed ~/.zshrc from template"
+
+# Ensure Ubuntu's global compinit does not conflict with zsh-autocomplete.
+if [ -f "$HOME/.zshenv" ]; then
+    if grep -q '^skip_global_compinit=1$' "$HOME/.zshenv"; then
+        echo "✓ ~/.zshenv already has skip_global_compinit=1"
+    else
+        {
+            echo "# zsh-autocomplete on Ubuntu: avoid global compinit conflicts."
+            echo "skip_global_compinit=1"
+            echo ""
+            cat "$HOME/.zshenv"
+        } > "$HOME/.zshenv.tmp"
+        mv "$HOME/.zshenv.tmp" "$HOME/.zshenv"
+        echo "✓ Added skip_global_compinit=1 to ~/.zshenv"
+    fi
+else
+    cat > "$HOME/.zshenv" << 'EOF'
+# zsh-autocomplete on Ubuntu: avoid global compinit conflicts.
+skip_global_compinit=1
+EOF
+    echo "✓ Created ~/.zshenv with skip_global_compinit=1"
+fi
 
 # Change default shell to zsh automatically when possible
 if command -v chsh &> /dev/null; then

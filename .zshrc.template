@@ -59,6 +59,12 @@ HIST_STAMPS="yyyy-mm-dd"
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
 
+# Optional combined live menu (history + files + options).
+# NOTE: zsh-autocomplete should be sourced near the top before compdef/compinit users.
+_zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+typeset -gi _zsh_autocomplete_loaded=0
+[[ -r "$_zsh_autocomplete_plugin" ]] && _zsh_autocomplete_loaded=1
+
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
@@ -72,9 +78,19 @@ plugins=(
     z
     fzf
     zsh-autosuggestions
-    zsh-history-substring-search
     zsh-syntax-highlighting
 )
+
+# zsh-history-substring-search overrides arrow keys and can conflict with zsh-autocomplete.
+if (( ! _zsh_autocomplete_loaded )); then
+    plugins+=(zsh-history-substring-search)
+fi
+
+# Completion UI fallback when zsh-autocomplete isn't present.
+if (( ! _zsh_autocomplete_loaded )); then
+    zmodload -i zsh/complist
+    zstyle ':completion:*' menu select
+fi
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Custom URL Highlighting
@@ -89,11 +105,9 @@ ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
 ZSH_HIGHLIGHT_PATTERNS+=('www.*' 'fg=cyan,underline')
 
-# Optional combined live menu (history + files + options).
-# Enable by installing:
-#   ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete
-_zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
-[[ -r "$_zsh_autocomplete_plugin" ]] && source "$_zsh_autocomplete_plugin"
+if (( _zsh_autocomplete_loaded )); then
+  source "$_zsh_autocomplete_plugin"
+fi
 
 if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
   source "$ZSH/oh-my-zsh.sh"
@@ -502,23 +516,44 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 
 if [[ -o interactive ]]; then
-    # History substring search: bind terminfo keys first for tmux/terminal compatibility.
-    [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
-    [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
-    bindkey '^[[A' history-substring-search-up
-    bindkey '^[[B' history-substring-search-down
-    bindkey '^[OA' history-substring-search-up
-    bindkey '^[OB' history-substring-search-down
-    bindkey '^P' history-substring-search-up
-    bindkey '^N' history-substring-search-down
+    # Prefix-only history search widget.
+    autoload -U up-line-or-beginning-search down-line-or-beginning-search
+    zle -N up-line-or-beginning-search
+    zle -N down-line-or-beginning-search
 
-    # Best-practice autosuggestion/completion behavior:
-    # - Tab keeps completion menu.
-    # - Right Arrow uses `forward-char` (accepts suggestion at end of line).
-    # - End uses `end-of-line` (accepts suggestion at end of line).
-    bindkey '^I' expand-or-complete
-    bindkey '^ ' autosuggest-accept        # Ctrl+Space
-    bindkey '^@' autosuggest-accept        # Ctrl+Space in tmux/some terminals
+    if (( _zsh_autocomplete_loaded )); then
+        # Keep zsh-autocomplete defaults for Tab/Shift+Tab/Up/Down/Ctrl+Space menus.
+        # Use Ctrl+P/Ctrl+N for prefix-only history search.
+        bindkey '^I' menu-complete
+        [[ -n "${terminfo[kcbt]-}" ]] && bindkey "${terminfo[kcbt]}" reverse-menu-complete
+        bindkey '^[[Z' reverse-menu-complete
+        bindkey '^P' up-line-or-beginning-search
+        bindkey '^N' down-line-or-beginning-search
+    else
+        # Prefix-only history search on arrows when using regular completion.
+        [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" up-line-or-beginning-search
+        [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" down-line-or-beginning-search
+        bindkey '^[[A' up-line-or-beginning-search
+        bindkey '^[[B' down-line-or-beginning-search
+        bindkey '^[OA' up-line-or-beginning-search
+        bindkey '^[OB' down-line-or-beginning-search
+        bindkey '^I' expand-or-complete
+        bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
+        bindkey '^ ' autosuggest-accept           # Ctrl+Space
+        bindkey '^@' autosuggest-accept           # Ctrl+Space in tmux/some terminals
+
+        # Completion menu navigation (active while completion list is open).
+        bindkey -M menuselect '^I' menu-complete
+        bindkey -M menuselect '^[[Z' reverse-menu-complete
+        [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
+        [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
+        bindkey -M menuselect '^[[A' up-line-or-history
+        bindkey -M menuselect '^[[B' down-line-or-history
+        bindkey -M menuselect '^[OA' up-line-or-history
+        bindkey -M menuselect '^[OB' down-line-or-history
+    fi
+
+    # Keep right-arrow/end behavior predictable for autosuggestion acceptance at EOL.
     bindkey '^[[C' forward-char            # Right Arrow
     bindkey '^[OC' forward-char            # Right Arrow (application mode)
     bindkey '^[[F' end-of-line             # End
