@@ -5,62 +5,18 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# ── Oh My Zsh core ───────────────────────────────────────────────────
 
-# Set name of the theme to load
+export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
 HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
+zstyle ':omz:update' mode auto
 zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Keep command auto-correction off to avoid interactive "correct ... [nyae]?" prompts.
-ENABLE_CORRECTION="false"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# COMPLETION_WAITING_DOTS="true"
-# COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
 HIST_STAMPS="yyyy-mm-dd"
 
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
+# ── Plugin detection & compatibility ─────────────────────────────────
 
-# Plugin detection + compatibility guards.
-# NOTE: zsh-autocomplete should be sourced near the top before compdef/compinit users.
 _zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
 _zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 typeset -gi _zsh_autocomplete_loaded=0
@@ -68,18 +24,12 @@ typeset -gi _zsh_autocomplete_loaded=0
 typeset -gi _zsh_syntax_highlighting_enabled=1
 autoload -Uz is-at-least
 
-# Best-known stability guard:
-# zsh-autocomplete on zsh<5.9 can trigger unhandled widget warnings in
-# zsh-syntax-highlighting and cause Powerlevel10k instant-prompt warnings.
+# zsh-autocomplete + zsh-syntax-highlighting on zsh <5.9 causes
+# unhandled widget warnings. Disable highlighting in that case.
 if (( _zsh_autocomplete_loaded )) && ! is-at-least 5.9; then
     _zsh_syntax_highlighting_enabled=0
 fi
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
 plugins=(
     git
     colored-man-pages
@@ -90,61 +40,129 @@ plugins=(
     zsh-autosuggestions
 )
 
-# zsh-history-substring-search overrides arrow keys and can conflict with zsh-autocomplete.
+# zsh-history-substring-search conflicts with zsh-autocomplete arrow keys.
 if (( ! _zsh_autocomplete_loaded )); then
     plugins+=(zsh-history-substring-search)
 fi
 
+# Load complist (provides menu-select widget for navigable completion menus).
+zmodload -i zsh/complist
+
 # Completion UI fallback when zsh-autocomplete isn't present.
 if (( ! _zsh_autocomplete_loaded )); then
-    zmodload -i zsh/complist
     zstyle ':completion:*' menu select
 fi
 
+# zsh-autocomplete config must be set BEFORE sourcing the plugin.
 if (( _zsh_autocomplete_loaded )); then
-  source "$_zsh_autocomplete_plugin"
+    # Show completions as you type with a short delay.
+    zstyle ':autocomplete:*' delay 0.05
+    zstyle ':autocomplete:*' list-lines 8
+
+    # Tab opens a navigable menu (not just insert-best-match).
+    zstyle ':autocomplete:tab:*' insert-unambiguous no
+    zstyle ':autocomplete:tab:*' widget-style menu-select
+    zstyle ':autocomplete:tab:*' fzf-completion no
+
+    source "$_zsh_autocomplete_plugin"
 fi
 
-if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
-  source "$ZSH/oh-my-zsh.sh"
+[[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
+
+# ══════════════════════════════════════════════════════════════════════
+# Everything below runs AFTER oh-my-zsh so our settings are not
+# overridden. This is critical for completion styling to work.
+# ══════════════════════════════════════════════════════════════════════
+
+# ── Completion styling ───────────────────────────────────────────────
+
+# Re-apply menu select after oh-my-zsh (it can get overridden).
+if (( ! _zsh_autocomplete_loaded )); then
+    zstyle ':completion:*' menu select
 fi
 
-# User configuration
+# Ensure LS_COLORS is set (Ubuntu doesn't always export it in zsh).
+if [[ -z "$LS_COLORS" ]]; then
+    if command -v dircolors &>/dev/null; then
+        eval "$(dircolors -b)"
+    else
+        export LS_COLORS='di=1;34:ln=36:so=35:pi=33:ex=32:bd=1;33:cd=1;33:su=37;41:sg=30;43:tw=30;42:ow=34;42'
+    fi
+fi
 
-# export MANPATH="/usr/local/man:$MANPATH"
+# Group completions by type with headers (── directory ──, ── file ──, etc.)
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{yellow}%B── %d ──%b%f'
+zstyle ':completion:*:warnings'     format '%F{red}── no matches ──%f'
+zstyle ':completion:*:messages'     format '%F{cyan}%d%f'
 
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
+# Color completions by file type (dirs=blue, exes=green, symlinks=cyan)
+# and highlight the currently selected item.
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*:*:*:*:default' list-colors "${(s.:.)LS_COLORS}"
 
-# Preferred editor
+# Case-insensitive + partial matching ("doc" → "Documents", "dl" → "Downloads")
+zstyle ':completion:*' matcher-list \
+    'm:{a-zA-Z}={A-Za-z}' \
+    'r:|[._-]=* r:|=*' \
+    'l:|=* r:|=*'
+
+# Show option/flag descriptions
+zstyle ':completion:*' verbose yes
+
+# Directories first for cd; don't offer . or ..
+zstyle ':completion:*' list-dirs-first true
+zstyle ':completion:*:cd:*' tag-order local-directories directory-stack path-directories
+zstyle ':completion:*' ignore-parents parent pwd
+
+# Completion cache (makes repeated completions instant)
+[[ -d "$HOME/.zsh/cache" ]] || mkdir -p "$HOME/.zsh/cache"
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$HOME/.zsh/cache"
+
+# kill: color PIDs and show process info
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
+
+# SSH/SCP: complete hostnames from known_hosts + config
+_ssh_hosts=()
+if [[ -r ~/.ssh/known_hosts ]]; then
+    _ssh_hosts+=(${(f)"$(awk '{print $1}' ~/.ssh/known_hosts | tr ',' '\n' | sed 's/\[//;s/\]:.*//')"})
+fi
+if [[ -r ~/.ssh/config ]]; then
+    _ssh_hosts+=(${(f)"$(grep -i '^Host ' ~/.ssh/config | awk '{for(i=2;i<=NF;i++) if($i !~ /[*?]/) print $i}')"})
+fi
+if (( ${#_ssh_hosts} )); then
+    zstyle ':completion:*:(ssh|scp|rsync):*' hosts $_ssh_hosts
+fi
+unset _ssh_hosts
+
+# zsh-autocomplete group ordering (applied after oh-my-zsh so it sticks)
+if (( _zsh_autocomplete_loaded )); then
+    zstyle ':autocomplete:*' group-order \
+        named-directories directories path-directories recent-directories \
+        history-words files builtins commands functions aliases globbed-files
+fi
+
+# ── Environment ──────────────────────────────────────────────────────
+
 export EDITOR='nano'
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-
-# ======================================================================
-# CUSTOM CONFIGURATION
-# ======================================================================
 
 # Keep PATH unique while prepending user bins.
 typeset -U path PATH
 [[ -d "$HOME/.local/bin" ]] && path=("$HOME/.local/bin" $path)
-[[ -d "$HOME/bin" ]] && path=("$HOME/bin" $path)
+[[ -d "$HOME/bin" ]]        && path=("$HOME/bin" $path)
 export PATH
 
-# Open a URL/path with the first available system opener.
+# ── Utility: open URL/path with system opener ────────────────────────
+
 _open_default() {
     local target="$1"
-    if command -v xdg-open &> /dev/null; then
+    if command -v xdg-open &>/dev/null; then
         xdg-open "$target" >/dev/null 2>&1 &
-    elif command -v open &> /dev/null; then
+    elif command -v open &>/dev/null; then
         open "$target" >/dev/null 2>&1 &
-    elif command -v wslview &> /dev/null; then
+    elif command -v wslview &>/dev/null; then
         wslview "$target" >/dev/null 2>&1 &
     else
         echo "No URL opener found (xdg-open/open/wslview)."
@@ -152,100 +170,68 @@ _open_default() {
     fi
 }
 
-# ======================================================================
-# Backward-Compatibility Shortcuts
-# ======================================================================
+# ── Aliases: Navigation & Files ──────────────────────────────────────
 
-# Preserve legacy shortcuts from previous zsh configs.
 alias cls='clear'
-alias h='history'
-alias d='dirs -v'
-alias path='echo $PATH | tr ":" "\n"'
-alias safe_v='v'
-alias fix='inv isort && inv formatter --fix && inv lint'
-alias ssha='ssh-add'
-alias ssha-default='ssh-add ~/.ssh/id_rsa'
-
-if command -v cursor &> /dev/null; then
-    alias c='cursor'
-elif command -v code &> /dev/null; then
-    alias c='code'
-fi
-
-# Convenience wrappers for local VPN helper scripts.
-[[ -x "$HOME/vpn/vpn-connect.sh" ]] && alias vpn-connect='bash ~/vpn/vpn-connect.sh'
-[[ -x "$HOME/vpn/vpn-disconnect.sh" ]] && alias vpn-disconnect='bash ~/vpn/vpn-disconnect.sh'
-[[ -x "$HOME/vpn/vpn-status.sh" ]] && alias vpn-status='bash ~/vpn/vpn-status.sh'
-
-# ======================================================================
-# Enhanced Aliases
-# ======================================================================
-
-# Directory navigation
-alias cc='clear'     # Clear screen quickly
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
-alias .....='cd ../../../..'
 
-# List directory contents
-alias l='ls -lFh'     # size, show type, human readable
-alias la='ls -lAFh'   # long list, show almost all, show type, human readable
-alias lr='ls -tRFh'   # sorted by date, recursive, show type, human readable
-alias lt='tree -L 2'  # tree view (2 levels deep)
-alias ldot='ls -ld .*' # show only dotfiles
+alias l='ls -lFh'
+alias la='ls -lAFh'
 alias ll='ls -lAh --group-directories-first --color=auto'
+alias lt='tree -L 2'
+alias ldot='ls -ld .*'
 
-# Use bat if available, but keep cat-like output (no line numbers/header/grid).
-if command -v bat &> /dev/null; then
+# Use bat for cat (plain output, no paging).
+if command -v bat &>/dev/null; then
     alias cat='bat --style=plain --paging=never'
-    alias catt='bat' # Original bat with paging
-elif command -v batcat &> /dev/null; then
+    alias catt='bat'
+elif command -v batcat &>/dev/null; then
     alias cat='batcat --style=plain --paging=never'
     alias catt='batcat'
 fi
 
-# File operations
-alias cp='cp -iv'     # Confirm before overwriting, verbose
-alias mv='mv -iv'     # Confirm before overwriting, verbose
-alias rm='rm -iv'     # Confirm before deleting, verbose
-alias mkdir='mkdir -pv' # Create parent directories as needed, verbose
+alias cp='cp -iv'
+alias mv='mv -iv'
+alias rm='rm -I'         # Prompt only for >3 files or recursive deletes
+alias mkdir='mkdir -pv'
 
-# Grep
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
 
-# System
-alias df='df -h'      # Human-readable sizes
-alias du='du -h'      # Human-readable sizes
-alias free='free -h'  # Human-readable sizes
-alias myip='curl -s ifconfig.me' # Get external IP
-alias localip='hostname -I | awk "{print \$1}"' # Get local IP
+alias df='df -h'
+alias du='du -h'
+alias free='free -h'
+alias myip='curl -s ifconfig.me'
+alias localip='hostname -I | awk "{print \$1}"'
+alias h='history'
+alias path='echo "$PATH" | tr ":" "\n"'
 
-# Safety nets
+# Safety nets for recursive operations
 alias chown='chown --preserve-root'
 alias chmod='chmod --preserve-root'
 alias chgrp='chgrp --preserve-root'
 
-# ======================================================================
-# Git Shortcuts (Oh My Zsh git plugin provides many, here are extras)
-# ======================================================================
+# Editor: cursor > code
+if command -v cursor &>/dev/null; then
+    alias c='cursor'
+elif command -v code &>/dev/null; then
+    alias c='code'
+fi
 
-alias gst='git status'
-alias gaa='git add --all'
-alias gcmsg='git commit -m'
-alias gl='git pull'
-alias gp='git push'
-alias gco='git checkout'
+# VPN helpers (if present)
+[[ -x "$HOME/vpn/vpn-connect.sh" ]]    && alias vpn-connect='bash ~/vpn/vpn-connect.sh'
+[[ -x "$HOME/vpn/vpn-disconnect.sh" ]] && alias vpn-disconnect='bash ~/vpn/vpn-disconnect.sh'
+[[ -x "$HOME/vpn/vpn-status.sh" ]]     && alias vpn-status='bash ~/vpn/vpn-status.sh'
+
+# ── Aliases: Git (extras beyond Oh My Zsh git plugin) ────────────────
+
 alias glog='git log --oneline --decorate --graph'
 alias glp='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit'
+alias cdg='cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"'
 
-# Go to git root directory
-alias cdg='cd $(git rev-parse --show-toplevel 2>/dev/null || pwd)'
-
-# Interactive branch switcher with fzf
-if command -v fzf &> /dev/null; then
+# Interactive branch switcher (requires fzf)
+if command -v fzf &>/dev/null; then
     unalias gbr 2>/dev/null
     function gbr {
         local branch
@@ -256,95 +242,58 @@ fi
 
 # Delete current branch and return to main/master
 branch_bye() {
-    local current_branch main_branch
-    current_branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || {
-        echo "Not on a local branch"
-        return 1
-    }
-    main_branch=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-    [[ -z "$main_branch" ]] && main_branch=$(git branch --list main master 2>/dev/null | sed 's/^[* ]*//' | head -n1)
-    [[ -z "$main_branch" ]] && main_branch="main"
-    if [[ "$current_branch" == "$main_branch" ]]; then
-        echo "Already on '$main_branch'"
-        return 1
-    fi
-    git checkout "$main_branch" && git branch -D "$current_branch"
+    local current main
+    current=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || { echo "Not on a local branch"; return 1; }
+    main=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    [[ -z "$main" ]] && main=$(git branch --list main master 2>/dev/null | sed 's/^[* ]*//' | head -n1)
+    [[ -z "$main" ]] && main="main"
+    [[ "$current" == "$main" ]] && { echo "Already on '$main'"; return 1; }
+    git checkout "$main" && git branch -D "$current"
 }
 
-# Open PR page in browser
-# Open PR / MR page in browser (GitHub + GitLab support)
+# Open PR/MR page in browser (GitHub + GitLab)
 pr() {
-    local remote_url
-    remote_url=$(git config --get remote.origin.url)
+    local remote_url repo_url branch
+    remote_url=$(git config --get remote.origin.url) || { echo "No remote.origin.url found"; return 1; }
 
-    if [ -z "$remote_url" ]; then
-        echo "No remote.origin.url found"
-        return 1
-    fi
-
-    local repo_url
     case "$remote_url" in
         git@*:*)
-            local host_and_path host repo_path
-            host_and_path="${remote_url#git@}"
-            host="${host_and_path%%:*}"
-            repo_path="${host_and_path#*:}"
-            repo_url="https://${host}/${repo_path}"
-            repo_url="${repo_url%.git}"
-            ;;
+            local host="${remote_url#git@}" path="${remote_url#*:}"
+            host="${host%%:*}"
+            repo_url="https://${host}/${path%.git}" ;;
         ssh://git@*)
             repo_url="https://${remote_url#ssh://git@}"
-            repo_url="${repo_url%.git}"
-            ;;
+            repo_url="${repo_url%.git}" ;;
         http://*|https://*)
-            repo_url="${remote_url%.git}"
-            ;;
+            repo_url="${remote_url%.git}" ;;
         *)
-            echo "Unsupported remote URL format: $remote_url"
-            return 1
-            ;;
+            echo "Unsupported remote URL: $remote_url"; return 1 ;;
     esac
 
-    local branch
-    branch=$(git symbolic-ref --quiet --short HEAD) || {
-        echo "Not on a local branch"
-        return 1
-    }
+    branch=$(git symbolic-ref --quiet --short HEAD) || { echo "Not on a local branch"; return 1; }
 
     if echo "$repo_url" | grep -qi "gitlab"; then
         local mr_url="${repo_url}/-/merge_requests/new?merge_request[source_branch]=${branch}"
-        # If glab exists, use it (cleanest solution)
         if command -v glab >/dev/null 2>&1; then
-            if ! glab mr create --web >/dev/null 2>&1; then
-                _open_default "$mr_url" || echo "$mr_url"
-            fi
+            glab mr create --web >/dev/null 2>&1 || _open_default "$mr_url" || echo "$mr_url"
         else
             _open_default "$mr_url" || echo "$mr_url"
         fi
     else
-        # Default to GitHub-style PR
         local pr_url="${repo_url}/pull/new/${branch}"
         _open_default "$pr_url" || echo "$pr_url"
     fi
 }
 
+# ── Aliases: Python ──────────────────────────────────────────────────
 
-# ======================================================================
-# Python Development
-# ======================================================================
-
-# Activate virtualenv in current directory
 alias v='source .venv/bin/activate 2>/dev/null || source venv/bin/activate 2>/dev/null || echo "No .venv or venv found"'
-
-# Python aliases
 alias pyrun='python -m'
 alias pyserver='python -m http.server'
-
-# Poetry shortcuts
 alias psync='poetry install --sync'
 alias plock='poetry lock && poetry install'
 
-# Smart virtualenv auto-activation
+# Auto-activate/deactivate virtualenvs on cd
 autoload -Uz add-zsh-hook
 _venv_auto_activate() {
     if [[ -z "$VIRTUAL_ENV" ]]; then
@@ -354,9 +303,9 @@ _venv_auto_activate() {
             source venv/bin/activate 2>/dev/null
         fi
     else
-        # Check if we've left the directory with the venv
-        local venv_dir="${VIRTUAL_ENV%/*}"
-        if [[ "$PWD/" != "$venv_dir/"* ]]; then
+        # Deactivate if we've left the project directory
+        local project_dir="${VIRTUAL_ENV%/*}"
+        if [[ "$PWD/" != "$project_dir/"* ]]; then
             deactivate 2>/dev/null
         fi
     fi
@@ -364,144 +313,108 @@ _venv_auto_activate() {
 add-zsh-hook chpwd _venv_auto_activate
 _venv_auto_activate
 
-# ======================================================================
-# FZF Configuration
-# ======================================================================
+# ── FZF configuration ────────────────────────────────────────────────
 
-if command -v fzf &> /dev/null; then
-    # Use fd instead of find if available
-    if command -v fd &> /dev/null; then
+if command -v fzf &>/dev/null; then
+    if command -v fd &>/dev/null; then
         export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
         export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-    elif command -v fdfind &> /dev/null; then
+    elif command -v fdfind &>/dev/null; then
         export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --follow --exclude .git'
-        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
         export FZF_ALT_C_COMMAND='fdfind --type d --hidden --follow --exclude .git'
     fi
+    export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND:-}"
 
-    # Better color scheme
-    export FZF_DEFAULT_OPTS='
-        --height 40%
-        --layout=reverse
-        --border
-        --inline-info
-        --color=fg:#4b5563,bg:#f8fafc,hl:#0ea5e9
-        --color=fg+:#475569,bg+:#e2e8f0,hl+:#0284c7
-        --color=info:#f59e0b,prompt:#22c55e,pointer:#ec4899
-        --color=marker:#db2777,spinner:#f59e0b,header:#3b82f6
-    '
+    # Neutral color scheme (works on light and dark terminals)
+    export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --inline-info'
 
     # Preview with bat if available
-    if command -v bat &> /dev/null; then
+    if command -v bat &>/dev/null; then
         export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :500 {}'"
-    elif command -v batcat &> /dev/null; then
+    elif command -v batcat &>/dev/null; then
         export FZF_CTRL_T_OPTS="--preview 'batcat --color=always --line-range :500 {}'"
     fi
 fi
 
-# ======================================================================
-# Custom Functions
-# ======================================================================
+# ── Functions ────────────────────────────────────────────────────────
 
 # Find files by name
-ff() {
-    find . -type f -iname "*$1*" 2>/dev/null
-}
+ff() { find . -type f -iname "*${1:?usage: ff PATTERN}*" 2>/dev/null; }
 
-# Find text in files
+# Find text in files (prefer ripgrep)
 ftext() {
-    grep -rnw . -e "$1" 2>/dev/null
+    local pattern="${1:?usage: ftext PATTERN}"
+    if command -v rg &>/dev/null; then
+        rg "$pattern"
+    else
+        grep -rnw . -e "$pattern" 2>/dev/null
+    fi
 }
 
-# Show listening ports/processes using whichever tool is installed.
+# Show listening ports/processes
 ports() {
-    if command -v ss &> /dev/null; then
+    if command -v ss &>/dev/null; then
         ss -tulanp
-    elif command -v netstat &> /dev/null; then
+    elif command -v netstat &>/dev/null; then
         netstat -tulanp
     else
-        echo "No supported port tool found (install iproute2 or net-tools)."
+        echo "No port tool found (install iproute2 or net-tools)."
         return 1
     fi
 }
 
-# Open current directory in the default file manager.
-f() {
-    _open_default "."
-}
+# Open current directory in file manager
+f() { _open_default "."; }
 
 # Create directory and cd into it
-mkcd() {
-    mkdir -p "$1" && cd "$1"
-}
+mkcd() { mkdir -p "$1" && cd "$1"; }
 
-# Create or attach to a tmux session.
-# Usage:
-#   tm        -> attach/create "main"
-#   tm 0      -> attach/create session "0"
-#   tm mydev  -> attach/create session "mydev"
-tm() {
-    local session="${1:-main}"
-    tmux new -A -s "$session"
-}
+# Create or attach to a tmux session
+# Usage: tm [session-name]  (default: "main")
+tm() { tmux new -A -s "${1:-main}"; }
 
-# Extract any archive
-extract() {
-    if [ -f "$1" ]; then
-        case "$1" in
-            *.tar.bz2)   tar xjf "$1"    ;;
-            *.tar.gz)    tar xzf "$1"    ;;
-            *.bz2)       bunzip2 "$1"    ;;
-            *.rar)       unrar x "$1"    ;;
-            *.gz)        gunzip "$1"     ;;
-            *.tar)       tar xf "$1"     ;;
-            *.tbz2)      tar xjf "$1"    ;;
-            *.tgz)       tar xzf "$1"    ;;
-            *.zip)       unzip "$1"      ;;
-            *.Z)         uncompress "$1" ;;
-            *.7z)        7z x "$1"       ;;
-            *)           echo "'$1' cannot be extracted via extract()" ;;
-        esac
-    else
-        echo "'$1' is not a valid file"
-    fi
-}
+# Show disk usage of directories (top 10)
+ducks() { du -cks -- * 2>/dev/null | sort -rn | head -11; }
 
-# Show disk usage of directories in current location
-ducks() {
-    du -cks * | sort -rn | head -11
-}
-
-# Quick reload of zsh config
+# Quick reload
 alias reload='source ~/.zshrc && echo "✓ zsh config reloaded"'
 
-# ======================================================================
-# Zsh-specific configurations
-# ======================================================================
+# ── History ──────────────────────────────────────────────────────────
 
-# History configuration
 HISTFILE=~/.zsh_history
 HISTSIZE=100000
 SAVEHIST=100000
-setopt EXTENDED_HISTORY          # Write the history file in the ':start:elapsed;command' format.
-setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
-setopt SHARE_HISTORY             # Share history between all sessions.
-setopt HIST_EXPIRE_DUPS_FIRST    # Expire a duplicate event first when trimming history.
-setopt HIST_IGNORE_DUPS          # Do not record an event that was just recorded again.
-setopt HIST_IGNORE_ALL_DUPS      # Delete an old recorded event if a new event is a duplicate.
-setopt HIST_FIND_NO_DUPS         # Do not display a previously found event.
-setopt HIST_IGNORE_SPACE         # Do not record an event starting with a space.
-setopt HIST_SAVE_NO_DUPS         # Do not write a duplicate event to the history file.
-setopt HIST_VERIFY               # Do not execute immediately upon history expansion.
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_VERIFY
 
-# Autosuggestion configuration
+# ── Autosuggestions ──────────────────────────────────────────────────
+
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
 ZSH_AUTOSUGGEST_USE_ASYNC=1
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark
 
-# Sticky prefix history search.
-# Keeps the initial typed query while cycling through matches.
+# ── Shell QoL options ────────────────────────────────────────────────
+
+setopt AUTO_CD              # Type a dir name to cd into it (no 'cd' needed)
+setopt AUTO_PUSHD           # cd pushes onto the dir stack (use 'cd -N' to go back)
+setopt PUSHD_IGNORE_DUPS    # No duplicate dirs on the stack
+setopt PUSHD_SILENT         # Don't print dir stack after pushd/popd
+setopt CORRECT              # Offer correction for mistyped commands (not args)
+setopt INTERACTIVE_COMMENTS # Allow # comments in interactive shell
+setopt GLOB_DOTS            # Include dotfiles in glob patterns
+
+# ── Key bindings ─────────────────────────────────────────────────────
+
+# Sticky prefix history search: keeps original typed query while cycling.
 typeset -g _history_prefix_query=""
 _history_prefix_search_up() {
     if [[ $LASTWIDGET != _history_prefix_search_up &&
@@ -529,38 +442,46 @@ zle -N _history_prefix_search_up
 zle -N _history_prefix_search_down
 
 if [[ -o interactive ]]; then
-    # Prefix-only history search widget.
     autoload -U up-line-or-beginning-search down-line-or-beginning-search
     zle -N up-line-or-beginning-search
     zle -N down-line-or-beginning-search
 
     if (( _zsh_autocomplete_loaded )); then
-        # Keep zsh-autocomplete menu cycling on Tab/Shift+Tab even when plugins
-        # (like fzf) remap Tab.
-        bindkey '^I' menu-complete
-        [[ -n "${terminfo[kcbt]-}" ]] && bindkey "${terminfo[kcbt]}" reverse-menu-complete
-        bindkey '^[[Z' reverse-menu-complete
-
-        # Use Ctrl+P/Ctrl+N for sticky prefix-only history search.
+        # zsh-autocomplete shows live completions as you type.
+        # Ctrl+P/N for sticky prefix history search.
         bindkey '^P' _history_prefix_search_up
         bindkey '^N' _history_prefix_search_down
+
+        # Force Tab to open a navigable menu (override zsh-autocomplete default).
+        bindkey '^I'   menu-select
+        bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
+
+        # Menu navigation keys
+        bindkey -M menuselect '^I'   menu-complete           # Tab cycles forward
+        bindkey -M menuselect '^[[Z' reverse-menu-complete   # Shift+Tab cycles back
+        [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
+        [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
+        bindkey -M menuselect '^[[A' up-line-or-history
+        bindkey -M menuselect '^[[B' down-line-or-history
+        bindkey -M menuselect '^[OA' up-line-or-history
+        bindkey -M menuselect '^[OB' down-line-or-history
     else
-        # Prefix-only history search on arrows when using regular completion.
+        # Arrow keys → sticky prefix history search
         [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
         [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" _history_prefix_search_down
         bindkey '^[[A' _history_prefix_search_up
         bindkey '^[[B' _history_prefix_search_down
         bindkey '^[OA' _history_prefix_search_up
         bindkey '^[OB' _history_prefix_search_down
-        bindkey '^P' _history_prefix_search_up
-        bindkey '^N' _history_prefix_search_down
-        bindkey '^I' expand-or-complete
+        bindkey '^P'   _history_prefix_search_up
+        bindkey '^N'   _history_prefix_search_down
+        bindkey '^I'   expand-or-complete
         bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
-        bindkey '^ ' autosuggest-accept           # Ctrl+Space
-        bindkey '^@' autosuggest-accept           # Ctrl+Space in tmux/some terminals
+        bindkey '^ '   autosuggest-accept          # Ctrl+Space
+        bindkey '^@'   autosuggest-accept          # Ctrl+Space (tmux)
 
-        # Completion menu navigation (active while completion list is open).
-        bindkey -M menuselect '^I' menu-complete
+        # Completion menu navigation
+        bindkey -M menuselect '^I'   menu-complete
         bindkey -M menuselect '^[[Z' reverse-menu-complete
         [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
         [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
@@ -570,51 +491,52 @@ if [[ -o interactive ]]; then
         bindkey -M menuselect '^[OB' down-line-or-history
     fi
 
-    # Keep right-arrow/end behavior predictable for autosuggestion acceptance at EOL.
-    bindkey '^[[C' forward-char            # Right Arrow
-    bindkey '^[OC' forward-char            # Right Arrow (application mode)
-    bindkey '^[[F' end-of-line             # End
-    bindkey '^[OF' end-of-line             # End (application mode)
-    # bindkey '^[[B' autosuggest-accept    # Down Arrow (optional, overrides history search)
+    # Right-arrow/End: accept autosuggestion at end of line
+    bindkey '^[[C' forward-char
+    bindkey '^[OC' forward-char
+    bindkey '^[[F' end-of-line
+    bindkey '^[OF' end-of-line
+
+    # Ctrl+Right: accept one word of autosuggestion
+    bindkey '^[[1;5C' forward-word
+    bindkey '^[f'     forward-word            # Alt+F fallback
+
+    # Ctrl+Z: undo last edit on command line
+    bindkey '^Z' undo
 fi
 
-# ======================================================================
-# Pyenv configuration (if installed)
-# ======================================================================
+# ── Pyenv (if installed) ────────────────────────────────────────────
 
 if [ -d "$HOME/.pyenv" ]; then
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
     eval "$(pyenv init -)"
+    if pyenv commands 2>/dev/null | grep -q virtualenv-init; then
+        eval "$(pyenv virtualenv-init -)"
+    fi
 fi
 
-# Load syntax-highlighting as late as possible to avoid unhandled widget warnings.
+# ── Syntax highlighting (loaded late to avoid widget warnings) ───────
+
 if (( _zsh_syntax_highlighting_enabled )) && (( ! $+functions[_zsh_highlight] )); then
     [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
 fi
 
 if (( _zsh_syntax_highlighting_enabled )) && (( $+functions[_zsh_highlight] )); then
-    # Make command syntax colors explicit (useful when terminal/theme colors are subtle).
     ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
     ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=yellow,bold'
     ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'
 
-    # Enable URL highlighting.
     ZSH_HIGHLIGHT_HIGHLIGHTERS=(main pattern)
     typeset -gA ZSH_HIGHLIGHT_PATTERNS
     ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
     ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
-    ZSH_HIGHLIGHT_PATTERNS+=('www.*' 'fg=cyan,underline')
 fi
 
-# ======================================================================
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-# ======================================================================
+# ── Powerlevel10k config ─────────────────────────────────────────────
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# ======================================================================
-# Local Customizations (not tracked by setup script)
-# ======================================================================
+# ── Local overrides (not managed by setup script) ────────────────────
 
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local

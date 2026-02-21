@@ -34,9 +34,13 @@ After the script finishes:
 
 ## Completions & Autosuggestions
 
-**Ghost suggestions** (inline, one at a time): Controlled by `zsh-autosuggestions` with strategy `(history completion)`.
+**Ghost suggestions** (inline gray text): From `zsh-autosuggestions` using history + completion. Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
 
-**Interactive completion menu** (multiple candidates): Provided by `zsh-autocomplete` when installed.
+**Interactive completion menu** (multiple candidates with highlighting): From `zsh-autocomplete` when installed. Current match is highlighted, items are colored by type (dirs in blue, etc.), and grouped under headers like `── directory ──`.
+
+**Smart matching**: Completions are case-insensitive and support partial matching — typing `doc` matches `Documents`, `vid` matches `Videos`.
+
+**Auto-cd**: Type a directory name without `cd` and press Enter to go there. Use `cd -1`, `cd -2` etc. to jump back to previous directories.
 
 ### Key bindings
 
@@ -45,8 +49,11 @@ After the script finishes:
 | `Tab` / `Shift+Tab` | Next/prev completion | Next/prev completion |
 | `Up` / `Down` | Menu/history (autocomplete) | Prefix history search |
 | `Ctrl+P` / `Ctrl+N` | Prefix history search | Prefix history search |
-| `Right Arrow` / `End` | Accept autosuggestion | Accept autosuggestion |
+| `Right Arrow` | Accept full autosuggestion | Accept full autosuggestion |
+| `Ctrl+Right` | Accept one word of suggestion | Accept one word |
+| `End` | Accept full autosuggestion | Accept full autosuggestion |
 | `Ctrl+Space` | — | Accept autosuggestion |
+| `Ctrl+Z` | Undo last edit | Undo last edit |
 
 ## Where to Customize
 
