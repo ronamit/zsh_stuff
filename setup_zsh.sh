@@ -349,7 +349,7 @@ if [ -f "$HOME/.zshrc.local" ]; then
     echo "  ✓ ~/.zshrc.local already exists (not touched)"
 elif [ -f "$HOME/.zshrc" ]; then
     # Broad pattern: any export whose name contains TOKEN, KEY, SECRET, or starts with AWS_/HF_/GITHUB_/WANDB_
-    grep -E '^export\s+([A-Za-z_][A-Za-z0-9_]*(TOKEN|KEY|SECRET)|AWS_[A-Za-z0-9_]*|HF_[A-Za-z0-9_]*|GITHUB_[A-Za-z0-9_]*|WANDB_[A-Za-z0-9_]*)=' \
+    grep -E '^export +([A-Za-z_][A-Za-z0-9_]*(TOKEN|KEY|SECRET)[A-Za-z0-9_]*|AWS_[A-Za-z0-9_]*|HF_[A-Za-z0-9_]*|GITHUB_[A-Za-z0-9_]*|WANDB_[A-Za-z0-9_]*)=' \
         "$HOME/.zshrc" > "$HOME/.zshrc.local" 2>/dev/null || true
 
     if [ -s "$HOME/.zshrc.local" ]; then

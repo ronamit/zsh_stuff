@@ -74,13 +74,15 @@ echo ""
 
 echo "### 4. Routing to Server ###"
 echo "Route to $TARGET_IP:"
-ip route get $TARGET_IP 2>&1
+ip route get "$TARGET_IP" 2>&1
 echo ""
 
 echo "### 5. VPN Routes ###"
 echo "Routes via VPN gateway (looking for 10.10/10.156 networks):"
-ip route | grep -E "(10\.10|10\.156)" | head -5
-if [ $? -ne 0 ]; then
+VPN_ROUTES=$(ip route | grep -E "(10\.10|10\.156)" | head -5)
+if [ -n "$VPN_ROUTES" ]; then
+    echo "$VPN_ROUTES"
+else
     echo -e "${YELLOW}⚠️  No routes found for 10.10.x.x or 10.156.x.x networks${NC}"
     echo "VPN might not be routing traffic correctly."
 fi
@@ -97,35 +99,39 @@ echo ""
 
 echo "### 7. Ping Test ###"
 echo "Pinging $TARGET_IP (3 packets)..."
-if ping -c 3 -W 2 $TARGET_IP &>/dev/null; then
+PING_OUTPUT=$(ping -c 3 -W 2 "$TARGET_IP" 2>&1)
+if echo "$PING_OUTPUT" | grep -q "bytes from"; then
     echo -e "${GREEN}✅ Ping successful${NC}"
-    ping -c 3 -W 2 $TARGET_IP | tail -2
+    echo "$PING_OUTPUT" | tail -2
 else
     echo -e "${RED}❌ Ping failed - 100% packet loss${NC}"
-    ping -c 3 -W 2 $TARGET_IP 2>&1 | tail -2
+    echo "$PING_OUTPUT" | tail -2
 fi
 echo ""
 
 echo "### 8. SSH Connection Test ###"
 echo "Testing SSH connection (10 second timeout)..."
 if [ -n "$TARGET_HOST" ] && [ "$TARGET_HOST" != "(manual entry)" ]; then
-    timeout 10 ssh -v -o ConnectTimeout=5 $TARGET_HOST "echo 'SSH connection successful!'" 2>&1 | \
+    timeout 10 ssh -v -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+        "$TARGET_HOST" "echo 'SSH connection successful!'" 2>&1 | \
         grep -E "(Connecting|connect|Connection|debug1:|SUCCESS|Permission denied)" | head -15
 else
     echo "Testing direct IP connection..."
-    timeout 10 ssh -v -o ConnectTimeout=5 $TARGET_IP "echo 'SSH connection successful!'" 2>&1 | \
+    timeout 10 ssh -v -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+        "$TARGET_IP" "echo 'SSH connection successful!'" 2>&1 | \
         grep -E "(Connecting|connect|Connection|debug1:|SUCCESS|Permission denied)" | head -15
 fi
 echo ""
 
 echo "### 9. Port Check ###"
 echo "Checking if SSH port 22 is reachable on $TARGET_IP..."
-if timeout 5 nc -zv $TARGET_IP 22 2>&1 | grep -q "succeeded\|open"; then
+NC_OUTPUT=$(timeout 5 nc -zv "$TARGET_IP" 22 2>&1)
+if echo "$NC_OUTPUT" | grep -qi "succeeded\|open\|connected"; then
     echo -e "${GREEN}✅ Port 22 is open${NC}"
-    timeout 5 nc -zv $TARGET_IP 22 2>&1
+    echo "$NC_OUTPUT"
 else
     echo -e "${RED}❌ Port 22 is closed or filtered${NC}"
-    timeout 5 nc -zv $TARGET_IP 22 2>&1
+    echo "$NC_OUTPUT"
 fi
 echo ""
 
@@ -160,14 +166,14 @@ else
 fi
 
 # Ping Status
-if ping -c 1 -W 2 $TARGET_IP &>/dev/null; then
+if ping -c 1 -W 2 "$TARGET_IP" &>/dev/null; then
     PING_STATUS="${GREEN}✅ Reachable${NC}"
 else
     PING_STATUS="${RED}❌ Unreachable${NC}"
 fi
 
 # SSH Port Status
-if timeout 5 nc -zv $TARGET_IP 22 &>/dev/null; then
+if timeout 5 nc -zv "$TARGET_IP" 22 &>/dev/null; then
     SSH_STATUS="${GREEN}✅ Port Open${NC}"
 else
     SSH_STATUS="${RED}❌ Port Closed/Timeout${NC}"
@@ -180,7 +186,7 @@ echo ""
 
 # Diagnosis
 if ip addr show tun0 &>/dev/null; then
-    if ! ping -c 1 -W 2 $TARGET_IP &>/dev/null; then
+    if ! ping -c 1 -W 2 "$TARGET_IP" &>/dev/null; then
         echo -e "${RED}⚠️  ISSUE DETECTED:${NC}"
         echo "   VPN is connected but server is unreachable."
         echo ""
@@ -194,7 +200,7 @@ if ip addr show tun0 &>/dev/null; then
         echo "   1. Verify desktop IP on desktop: hostname -I"
         echo "   2. If wrong VLAN, contact IT (see it_support_message.txt)"
         echo "   3. Verify desktop is connected to Ethernet"
-    elif ! timeout 5 nc -zv $TARGET_IP 22 &>/dev/null; then
+    elif ! timeout 5 nc -zv "$TARGET_IP" 22 &>/dev/null; then
         echo -e "${YELLOW}⚠️  ISSUE DETECTED:${NC}"
         echo "   Server is reachable but SSH port is closed."
         echo ""

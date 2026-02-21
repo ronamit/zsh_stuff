@@ -1,66 +1,50 @@
 # zsh_stuff
 
-Automation-first zsh environment setup for Ubuntu/Debian.
-
-Detailed usage and troubleshooting: [ZSH_SETUP_GUIDE.md](ZSH_SETUP_GUIDE.md)
+Automation-first zsh environment setup for Ubuntu/Debian, plus utility scripts and guides.
 
 ## Quick Start
 
 ```bash
 cd ~/zsh_stuff
 bash setup_zsh.sh
-source ~/.zshrc
 ```
 
-Optional prompt wizard:
+Then: set terminal font to **Hack Nerd Font**, open a new terminal, and optionally run `p10k configure`.
 
-```bash
-p10k configure
-```
+Detailed usage & troubleshooting: [ZSH_SETUP_GUIDE.md](ZSH_SETUP_GUIDE.md)
 
-## What `setup_zsh.sh` Does Automatically
+## What `setup_zsh.sh` Does
 
-- Installs missing `zsh`, Oh My Zsh, and Powerlevel10k.
-- Installs plugins:
-  - `zsh-autosuggestions`
-  - `zsh-history-substring-search`
-  - `zsh-syntax-highlighting`
-  - `zsh-autocomplete` (combined history/files/options menu)
-- Installs required/recommended CLI tools via `apt` (best-effort for optional packages).
-- Installs Hack Nerd Font and refreshes font cache when font is not already present.
-- Adds or updates a managed tmux defaults block in `~/.tmux.conf`.
+- Installs zsh, Oh My Zsh, Powerlevel10k, and plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search`, `zsh-autocomplete`).
+- Installs CLI tools via apt: fzf, fd, bat, ripgrep, tree, tmux, etc.
+- Installs Hack Nerd Font.
+- Configures tmux defaults, `.zshenv`, and `.bashrc` fallback.
 - Backs up existing `~/.zshrc` and installs from `.zshrc.template`.
-- Ensures `~/.zshenv` contains `skip_global_compinit=1` for Ubuntu + zsh-autocomplete compatibility.
-- Creates or preserves `~/.zshrc.local` and migrates likely token exports when possible.
-- Attempts to set default shell to zsh and adds a `.bashrc` fallback auto-launch.
-- Creates Ubuntu compatibility symlinks (`fd` for `fdfind`, `bat` for `batcat`) when needed.
-- Skips apt refresh/download/install work when preexisting tools/packages are already available.
+- Creates `~/.zshrc.local` for personal tokens/exports (never overwritten).
+- Safe to re-run.
 
-## What You Still Need to Do
+## What You Still Do Manually
 
-- Set terminal font to `Hack Nerd Font` in your terminal profile.
-- Review and maintain personal secrets/exports in `~/.zshrc.local`.
-- Open a new terminal or run `source ~/.zshrc` after changes.
+1. Set terminal font to **Hack Nerd Font**.
+2. Add personal exports/tokens to `~/.zshrc.local`.
 
-## Key Files
+## Files
 
-- `setup_zsh.sh` - installer and updater.
-- `.zshrc.template` - tracked default shell configuration.
-- [ZSH_SETUP_GUIDE.md](ZSH_SETUP_GUIDE.md) - practical usage + troubleshooting.
-- `diagnose_ssh.sh` - SSH/VPN diagnostics helper.
+| File | Purpose |
+|------|---------|
+| `setup_zsh.sh` | Installer/updater |
+| `.zshrc.template` | Tracked shell config |
+| `ZSH_SETUP_GUIDE.md` | Usage, key bindings, troubleshooting |
+| `diagnose_ssh.sh` | SSH/VPN connection diagnostics |
+| `clear-cursor-cache.sh` | Clear Cursor editor cache |
+| `cursor-slow-cache-clear.md` | Cursor cache clearing guide |
+| `yt-dlp-guide.md` | yt-dlp video download reference |
+| `Setting_static_IP_on_Android_hotspot.md` | Static IP setup for Android hotspot |
 
-## Updating Later
+## Updating
 
 ```bash
 cd ~/zsh_stuff
 git pull
 bash setup_zsh.sh
 ```
-
-## Remote SSH (Optional)
-
-For work VPN/SSH workflows, use:
-
-- `~/vpn/vpn-connect.sh`
-- `~/vpn/vpn-status.sh`
-- `bash ~/zsh_stuff/diagnose_ssh.sh`
