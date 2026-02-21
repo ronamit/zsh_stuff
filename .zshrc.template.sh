@@ -381,7 +381,7 @@ setopt HIST_VERIFY
 # ── Autosuggestions ──────────────────────────────────────────────────
 
 # History-only suggestions avoid expensive completion lookups that can feel like hangs.
-ZSH_AUTOSUGGEST_STRATEGY=(history)
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark
