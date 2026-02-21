@@ -440,6 +440,39 @@ _history_prefix_search_down() {
 zle -N _history_prefix_search_up
 zle -N _history_prefix_search_down
 
+# Smart Down: keep history scrolling when active; otherwise cycle directory
+# completions for cd/pushd/popd or AUTO_CD-style path input.
+_down_history_or_dirs() {
+    local cmd="${BUFFER%%[[:space:]]*}"
+    local in_history_scroll=0
+    local in_dir_context=0
+
+    if [[ $LASTWIDGET == _history_prefix_search_up ||
+          $LASTWIDGET == _history_prefix_search_down ||
+          $LASTWIDGET == up-line-or-beginning-search ||
+          $LASTWIDGET == down-line-or-beginning-search ||
+          $LASTWIDGET == _down_history_or_dirs ]]; then
+        in_history_scroll=1
+    fi
+
+    if [[ $CURSOR -eq ${#BUFFER} ]]; then
+        if [[ "$cmd" == "cd" || "$cmd" == "pushd" || "$cmd" == "popd" ]]; then
+            in_dir_context=1
+        elif [[ "$BUFFER" != *[[:space:]]* ]] && [[ "$BUFFER" == [./~]* ]]; then
+            in_dir_context=1
+        fi
+    fi
+
+    if (( in_history_scroll )); then
+        zle _history_prefix_search_down
+    elif (( in_dir_context )); then
+        zle menu-complete
+    else
+        zle _history_prefix_search_down
+    fi
+}
+zle -N _down_history_or_dirs
+
 if [[ -o interactive ]]; then
     autoload -U up-line-or-beginning-search down-line-or-beginning-search
     zle -N up-line-or-beginning-search
@@ -447,13 +480,13 @@ if [[ -o interactive ]]; then
 
     # Arrow keys → sticky prefix history search
     [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
-    [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" _history_prefix_search_down
+    [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" _down_history_or_dirs
     bindkey '^[[A' _history_prefix_search_up
-    bindkey '^[[B' _history_prefix_search_down
+    bindkey '^[[B' _down_history_or_dirs
     bindkey '^[OA' _history_prefix_search_up
-    bindkey '^[OB' _history_prefix_search_down
+    bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
-    bindkey '^N'   _history_prefix_search_down
+    bindkey '^N'   _down_history_or_dirs
     bindkey '^I'   expand-or-complete
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
