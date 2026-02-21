@@ -30,8 +30,12 @@ step() { STEP=$((STEP + 1)); echo ""; echo "[$STEP] $1"; }
 apt_update_once() {
     if [ "$APT_INDEX_REFRESHED" -eq 0 ]; then
         echo "  Refreshing apt package index..."
-        sudo apt-get update -qq
-        APT_INDEX_REFRESHED=1
+        if sudo apt-get update -qq; then
+            APT_INDEX_REFRESHED=1
+        else
+            echo "  ✗ apt-get update failed"
+            exit 1
+        fi
     fi
 }
 
@@ -93,8 +97,12 @@ clone_if_missing() {
     if [ -d "$dir" ]; then
         echo "  ✓ $name already installed"
     else
-        git clone --depth=1 "$url" "$dir"
-        echo "  ✓ $name installed"
+        if git clone --depth=1 "$url" "$dir"; then
+            echo "  ✓ $name installed"
+        else
+            echo "  ✗ Failed to clone $name from $url"
+            exit 1
+        fi
     fi
 }
 
@@ -145,8 +153,12 @@ command -v git  &>/dev/null || BOOTSTRAP+=("git")
 
 if [ "${#BOOTSTRAP[@]}" -gt 0 ]; then
     apt_update_once
-    sudo apt-get install -y "${BOOTSTRAP[@]}"
-    echo "  ✓ Installed: ${BOOTSTRAP[*]}"
+    if sudo apt-get install -y "${BOOTSTRAP[@]}"; then
+        echo "  ✓ Installed: ${BOOTSTRAP[*]}"
+    else
+        echo "  ✗ Failed to install bootstrap packages: ${BOOTSTRAP[*]}"
+        exit 1
+    fi
 else
     echo "  ✓ zsh, curl, git already present"
 fi
@@ -157,8 +169,12 @@ step "Installing Oh My Zsh..."
 if [ -d "$HOME/.oh-my-zsh" ]; then
     echo "  ✓ Oh My Zsh already installed"
 else
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-    echo "  ✓ Oh My Zsh installed"
+    if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended; then
+        echo "  ✓ Oh My Zsh installed"
+    else
+        echo "  ✗ Failed to install Oh My Zsh"
+        exit 1
+    fi
 fi
 
 # ── Plugins & Theme ──────────────────────────────────────────────────
@@ -252,8 +268,12 @@ fi
 if [ "${#APT_PACKAGES_TO_INSTALL[@]}" -gt 0 ]; then
     echo "  Installing: ${APT_PACKAGES_TO_INSTALL[*]}"
     apt_update_once
-    sudo apt-get install -y "${APT_PACKAGES_TO_INSTALL[@]}"
-    echo "  ✓ Packages installed"
+    if sudo apt-get install -y "${APT_PACKAGES_TO_INSTALL[@]}"; then
+        echo "  ✓ Packages installed"
+    else
+        echo "  ✗ Failed to install one or more packages"
+        exit 1
+    fi
 else
     echo "  ✓ All packages already present"
 fi
@@ -368,11 +388,19 @@ step "Installing ~/.zshrc from template..."
 BACKUP_PATH=""
 if [ -f "$HOME/.zshrc" ]; then
     BACKUP_PATH="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-    cp "$HOME/.zshrc" "$BACKUP_PATH"
-    echo "  ✓ Backup → $BACKUP_PATH"
+    if cp "$HOME/.zshrc" "$BACKUP_PATH"; then
+        echo "  ✓ Backup → $BACKUP_PATH"
+    else
+        echo "  ✗ Failed to back up ~/.zshrc"
+        exit 1
+    fi
 fi
-cp "$ZSHRC_TEMPLATE" "$HOME/.zshrc"
-echo "  ✓ Installed ~/.zshrc"
+if cp "$ZSHRC_TEMPLATE" "$HOME/.zshrc"; then
+    echo "  ✓ Installed ~/.zshrc"
+else
+    echo "  ✗ Failed to install ~/.zshrc from template"
+    exit 1
+fi
 
 # ── ~/.zshenv (skip_global_compinit) ─────────────────────────────────
 

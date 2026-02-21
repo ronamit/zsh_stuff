@@ -7,6 +7,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+IT_SUPPORT_MSG_FILE="$SCRIPT_DIR/it_support_message.txt"
 
 echo "=========================================="
 echo "SSH Connection Diagnostics"
@@ -198,7 +200,11 @@ if ip addr show tun0 &>/dev/null; then
         echo ""
         echo "   Next steps:"
         echo "   1. Verify desktop IP on desktop: hostname -I"
-        echo "   2. If wrong VLAN, contact IT (see it_support_message.txt)"
+        if [ -f "$IT_SUPPORT_MSG_FILE" ]; then
+            echo "   2. If wrong VLAN, contact IT (template: $IT_SUPPORT_MSG_FILE)"
+        else
+            echo "   2. If wrong VLAN, contact IT"
+        fi
         echo "   3. Verify desktop is connected to Ethernet"
     elif ! timeout 5 nc -zv "$TARGET_IP" 22 &>/dev/null; then
         echo -e "${YELLOW}⚠️  ISSUE DETECTED:${NC}"
@@ -231,4 +237,8 @@ fi
 echo "=========================================="
 echo ""
 echo "For IT support, attach this output to your ticket."
-echo "See it_support_message.txt for message templates."
+if [ -f "$IT_SUPPORT_MSG_FILE" ]; then
+    echo "Template file: $IT_SUPPORT_MSG_FILE"
+else
+    echo "No it_support_message.txt template found in this folder."
+fi

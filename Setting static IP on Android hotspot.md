@@ -78,7 +78,8 @@ Based on the gateway IP, here's what you can use:
 Open a terminal and check your IP:
 
 ```bash
-ip addr show wlp0s20f3 | grep inet
+IFACE=$(ip route | awk '/default/ {print $5; exit}')
+ip addr show "$IFACE" | grep inet
 ```
 
 You should see your static IP (e.g., `10.226.199.50`).
@@ -203,7 +204,8 @@ If something isn't working:
 1. Share the output of:
    ```bash
    ip route
-   ip addr show wlan0
+   IFACE=$(ip route | awk '/default/ {print $5; exit}')
+   ip addr show "$IFACE"
    ```
 2. Share which Android phone model you're using
 

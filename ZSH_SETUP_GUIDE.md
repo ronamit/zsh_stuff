@@ -16,6 +16,9 @@ After the script finishes:
 3. Open a new terminal (or `exec zsh`).
 4. Optional: `p10k configure` to customize your prompt.
 
+Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
+[ZSH_SHORTCUTS_REFERENCE.md](ZSH_SHORTCUTS_REFERENCE.md)
+
 ## What the Script Does
 
 `setup_zsh.sh` handles the full baseline:
@@ -54,6 +57,24 @@ After the script finishes:
 | `End` | Accept full autosuggestion | Accept full autosuggestion |
 | `Ctrl+Space` | — | Accept autosuggestion |
 | `Ctrl+Z` | Undo last edit | Undo last edit |
+
+For all daily shortcuts (especially git workflows), see:
+[ZSH_SHORTCUTS_REFERENCE.md](ZSH_SHORTCUTS_REFERENCE.md)
+
+## tmux Defaults & Shortcuts
+
+`setup_zsh.sh` writes a managed tmux block to `~/.tmux.conf`.
+
+| Key / Command | Action |
+|---|---|
+| `tm` | Create/attach tmux session (`tm [name]`, default `main`) |
+| `Ctrl+b` | tmux prefix key (default, unchanged) |
+| `Prefix + r` | Reload `~/.tmux.conf` |
+| `Prefix + [` | Enter copy mode (Vim keys enabled) |
+| `y` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
+| `Enter` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
+
+Additional defaults: mouse mode on, history increased, window/pane numbering starts at `1`, status bar at top.
 
 ## Where to Customize
 
