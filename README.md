@@ -16,11 +16,12 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 
 ## What `setup_zsh.sh` Does
 
-- Installs zsh, Oh My Zsh, Powerlevel10k, and plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search`, `zsh-autocomplete`).
-- Installs CLI tools via apt: fzf, fd, bat, ripgrep, tree, tmux, etc.
+- Installs zsh, Oh My Zsh, Powerlevel10k, and plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search`, `fzf-tab`).
+- Installs CLI tools via apt: fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.
 - Installs Hack Nerd Font.
 - Configures tmux defaults, `.zshenv`, and `.bashrc` fallback.
-- Backs up existing `~/.zshrc` and installs from `.zshrc.template`.
+- Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
+- Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Creates `~/.zshrc.local` for personal tokens/exports (never overwritten).
 - Safe to re-run.
 
@@ -34,15 +35,9 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 - `zsh-autosuggestions` shows inline ghost text from history (completion strategy disabled for responsiveness).
 - `Right Arrow` or `End` accepts the full suggestion.
 - `Ctrl+Right` (or `Alt+F`) accepts one word from the suggestion.
-- With `zsh-autocomplete` installed:
-  - `Tab` opens/cycles the completion menu.
-  - `Shift+Tab` cycles backward.
-  - `Up` / `Down` work in the autocomplete menu/history UI.
-  - `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
-- Without `zsh-autocomplete` (fallback mode):
-  - `Up` / `Down` and `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
-  - `Tab` / `Shift+Tab` run normal completion/reverse completion.
-  - `Ctrl+Space` accepts the autosuggestion (`^@` fallback is also bound for tmux terminals).
+- `fzf-tab` provides interactive fuzzy completion on `Tab`.
+- `Up` / `Down` and `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
+- `Ctrl+Space` accepts the autosuggestion (`^@` fallback is also bound for tmux terminals).
 
 ## tmux Defaults and Shortcuts
 
@@ -58,7 +53,7 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 | File | Purpose |
 |------|---------|
 | `setup_zsh.sh` | Installer/updater |
-| `.zshrc.template` | Tracked shell config |
+| `.zshrc.template.sh` | Tracked shell config |
 | `ZSH_SETUP_GUIDE.md` | Usage, key bindings, troubleshooting |
 | `ZSH_SHORTCUTS_REFERENCE.md` | Full command/shortcut reference (git + shell + tmux + fzf) |
 | `diagnose_ssh.sh` | SSH/VPN connection diagnostics |

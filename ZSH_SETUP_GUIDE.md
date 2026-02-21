@@ -24,12 +24,13 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 `setup_zsh.sh` handles the full baseline:
 
 - Installs zsh, Oh My Zsh, Powerlevel10k.
-- Installs plugins: `zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `zsh-autocomplete`.
-- Installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, etc.). Optional packages are best-effort.
+- Installs plugins: `zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `fzf-tab`.
+- Installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.). Optional packages are best-effort.
 - Installs Hack Nerd Font to `~/.local/share/fonts`.
 - Adds a managed tmux config block to `~/.tmux.conf`.
-- Backs up existing `~/.zshrc` and installs from `.zshrc.template`.
+- Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Ensures `~/.zshenv` has `skip_global_compinit=1` (Ubuntu compatibility).
+- Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
 - Creates/preserves `~/.zshrc.local` for personal settings.
 - Migrates likely token exports from old `~/.zshrc` to `~/.zshrc.local`.
 - Sets zsh as default shell via `chsh` and adds a `.bashrc` fallback.
@@ -39,7 +40,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 **Ghost suggestions** (inline gray text): From `zsh-autosuggestions` using history (completion strategy disabled for responsiveness). Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
 
-**Interactive completion menu** (multiple candidates with highlighting): From `zsh-autocomplete` when installed. Current match is highlighted, items are colored by type (dirs in blue, etc.), and grouped under headers like `── directory ──`.
+**Interactive completion menu** (multiple candidates with fuzzy selection): From `fzf-tab` on `Tab`, backed by zsh completion.
 
 **Smart matching**: Completions are case-insensitive and support partial matching — typing `doc` matches `Documents`, `vid` matches `Videos`.
 
@@ -47,16 +48,16 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 ### Key bindings
 
-| Key | With zsh-autocomplete | Without zsh-autocomplete |
-|---|---|---|
-| `Tab` / `Shift+Tab` | Next/prev completion | Next/prev completion |
-| `Up` / `Down` | Menu/history (autocomplete) | Prefix history search |
-| `Ctrl+P` / `Ctrl+N` | Prefix history search | Prefix history search |
-| `Right Arrow` | Accept full autosuggestion | Accept full autosuggestion |
-| `Ctrl+Right` | Accept one word of suggestion | Accept one word |
-| `End` | Accept full autosuggestion | Accept full autosuggestion |
-| `Ctrl+Space` | — | Accept autosuggestion |
-| `Ctrl+Z` | Undo last edit | Undo last edit |
+| Key | Action |
+|---|---|
+| `Tab` / `Shift+Tab` | Next/prev completion |
+| `Up` / `Down` | Prefix history search |
+| `Ctrl+P` / `Ctrl+N` | Prefix history search |
+| `Right Arrow` | Accept full autosuggestion |
+| `Ctrl+Right` | Accept one word of suggestion |
+| `End` | Accept full autosuggestion |
+| `Ctrl+Space` | Accept autosuggestion |
+| `Ctrl+Z` | Undo last edit |
 
 For all daily shortcuts (especially git workflows), see:
 [ZSH_SHORTCUTS_REFERENCE.md](ZSH_SHORTCUTS_REFERENCE.md)
@@ -80,12 +81,12 @@ Additional defaults: mouse mode on, history increased, window/pane numbering sta
 
 | File | Purpose |
 |---|---|
-| `~/zsh_stuff/.zshrc.template` | Project defaults (tracked in git) |
+| `~/zsh_stuff/.zshrc.template.sh` | Project defaults (tracked in git) |
 | `~/.zshrc.local` | Personal tokens, exports, overrides (never overwritten) |
 
 ```bash
 # Edit tracked defaults
-nano ~/zsh_stuff/.zshrc.template
+nano ~/zsh_stuff/.zshrc.template.sh
 
 # Edit personal/local settings
 nano ~/.zshrc.local
@@ -124,19 +125,24 @@ Set your terminal font to `Hack Nerd Font` and restart the terminal.
 rm -f ~/.zcompdump && autoload -Uz compinit && compinit
 ```
 
-### Syntax-highlighting widget warnings
+### Completion still feels slow in a huge repo
 
-This happens with `zsh-autocomplete` + `zsh-syntax-highlighting` on zsh < 5.9. The config automatically disables highlighting in that case. Upgrade to zsh 5.9+ for both plugins to coexist.
+Disable `fzf-tab` temporarily to isolate the source:
+
+```bash
+mv ~/.oh-my-zsh/custom/plugins/fzf-tab ~/.oh-my-zsh/custom/plugins/fzf-tab.disabled
+exec zsh
+```
 
 ### Key bindings differ in your terminal
 
-Check what sequence your terminal sends with `cat -v`, then bind that sequence in `.zshrc.template`.
+Check what sequence your terminal sends with `cat -v`, then bind that sequence in `.zshrc.template.sh`.
 
 ## Roll Back
 
 ```bash
-ls -1t ~/.zshrc.backup.*
-cp ~/.zshrc.backup.<timestamp> ~/.zshrc
+ls -1t ~/.zsh_backups/.zshrc.backup.*
+cp ~/.zsh_backups/.zshrc.backup.<timestamp> ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -145,5 +151,5 @@ source ~/.zshrc
 - [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh/wiki)
 - [Powerlevel10k](https://github.com/romkatv/powerlevel10k)
 - [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
-- [zsh-autocomplete](https://github.com/marlonrichert/zsh-autocomplete)
+- [fzf-tab](https://github.com/Aloxaf/fzf-tab)
 - [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)

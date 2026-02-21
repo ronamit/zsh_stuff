@@ -1,6 +1,6 @@
 # ZSH Shortcuts Reference
 
-Shortcut and helper reference for this setup, based on `.zshrc.template`.
+Shortcut and helper reference for this setup, based on `.zshrc.template.sh`.
 
 ## See What Is Active
 
@@ -19,13 +19,13 @@ bindkey | less
 
 | Key | Action |
 |---|---|
-| `Tab` | Completion (`menu-select` with `zsh-autocomplete`; `expand-or-complete` fallback) |
+| `Tab` | Completion (`expand-or-complete`; `fzf-tab` adds fuzzy selection UI) |
 | `Shift+Tab` | Reverse completion |
-| `Up` / `Down` | Completion menu nav (`zsh-autocomplete`) or sticky prefix history search (fallback) |
+| `Up` / `Down` | Sticky prefix history search |
 | `Ctrl+P` / `Ctrl+N` | Sticky prefix history search |
 | `Right Arrow` / `End` | Accept full autosuggestion |
 | `Ctrl+Right` / `Alt+F` | Accept one word from autosuggestion |
-| `Ctrl+Space` | Accept autosuggestion in fallback mode (`Ctrl+@` is also bound for tmux terminals) |
+| `Ctrl+Space` | Accept autosuggestion (`Ctrl+@` is also bound for tmux terminals) |
 | `Ctrl+Z` | Undo last command-line edit |
 
 ## Navigation and File Shortcuts
@@ -34,9 +34,10 @@ bindkey | less
 |---|---|
 | `cls` | `clear` |
 | `..` / `...` / `....` | Jump up 1 / 2 / 3 directories |
-| `l` | `ls -lFh` |
-| `la` | `ls -lAFh` |
-| `ll` | `ls -lAh --group-directories-first --color=auto` |
+| `ls` | Uses `lsd` when installed; otherwise system `ls` |
+| `l` | `lsd -l` when available; otherwise `ls -lFh` |
+| `la` | `lsd -la` when available; otherwise `ls -lAFh` |
+| `ll` | `lsd -lah` when available; otherwise `ls -lAh --group-directories-first --color=auto` |
 | `lt` | `tree -L 2` |
 | `ldot` | `ls -ld .*` |
 | `cat` | Uses `bat`/`batcat` plain mode when available |
@@ -62,7 +63,7 @@ bindkey | less
 
 `git` plugin from Oh My Zsh is enabled, plus custom helpers below.
 
-### Custom Git Helpers in `.zshrc.template`
+### Custom Git Helpers in `.zshrc.template.sh`
 
 | Shortcut | Does |
 |---|---|
@@ -82,6 +83,7 @@ bindkey | less
 | `ga` / `gaa` | `git add` / `git add --all` |
 | `gcmsg "msg"` | `git commit --message "msg"` |
 | `gco` / `gcb` | `git checkout` / `git checkout -b` |
+| `gsw` / `gswc` | `git switch` / `git switch --create` |
 | `gcm` | `git checkout $(git_main_branch)` |
 | `gd` / `gds` | `git diff` / `git diff --staged` |
 | `gb` / `gba` / `gbd` | Local branches / all branches / delete branch |
@@ -92,6 +94,7 @@ bindkey | less
 | `grh` / `grhh` | `git reset` / `git reset --hard` |
 | `grs` / `grst` | `git restore` / `git restore --staged` |
 | `gsh` | `git show` |
+| `git sw` / `git swc` | Global git aliases for `switch` / `switch --create` |
 
 ## Python and Virtualenv
 

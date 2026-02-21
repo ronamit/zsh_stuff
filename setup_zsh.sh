@@ -18,7 +18,8 @@ TMUX_CONF="$HOME/.tmux.conf"
 TMUX_MARKER_BEGIN="# >>> zsh_stuff tmux defaults >>>"
 TMUX_MARKER_END="# <<< zsh_stuff tmux defaults <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template"
+ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
+BACKUP_DIR="$HOME/.zsh_backups"
 APT_PACKAGES_TO_INSTALL=()
 APT_INDEX_REFRESHED=0
 STEP=0
@@ -139,7 +140,7 @@ if ! command -v apt-get &>/dev/null; then
 fi
 
 if [ ! -f "$ZSHRC_TEMPLATE" ]; then
-    echo "Error: Missing .zshrc.template at $ZSHRC_TEMPLATE"
+    echo "Error: Missing .zshrc.template.sh at $ZSHRC_TEMPLATE"
     exit 1
 fi
 
@@ -197,9 +198,9 @@ clone_if_missing "zsh-history-substring-search" \
     "https://github.com/zsh-users/zsh-history-substring-search.git" \
     "$ZSH_CUSTOM/plugins/zsh-history-substring-search" "zsh-history-substring-search"
 
-clone_if_missing "zsh-autocomplete" \
-    "https://github.com/marlonrichert/zsh-autocomplete.git" \
-    "$ZSH_CUSTOM/plugins/zsh-autocomplete" "zsh-autocomplete"
+clone_if_missing "fzf-tab" \
+    "https://github.com/Aloxaf/fzf-tab.git" \
+    "$ZSH_CUSTOM/plugins/fzf-tab" "fzf-tab"
 
 # ── APT packages ─────────────────────────────────────────────────────
 
@@ -215,6 +216,7 @@ add_pkg_if_missing_cmd fzf  fzf
 add_pkg_if_missing_cmd tree tree
 add_pkg_if_missing_cmd tmux tmux
 add_pkg_if_missing_cmd rg   ripgrep
+add_best_effort_pkg_if_missing_cmd lsd lsd
 
 if ! command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
     add_pkg "fd-find"
@@ -387,7 +389,12 @@ fi
 step "Installing ~/.zshrc from template..."
 BACKUP_PATH=""
 if [ -f "$HOME/.zshrc" ]; then
-    BACKUP_PATH="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+    if mkdir -p "$BACKUP_DIR"; then
+        BACKUP_PATH="$BACKUP_DIR/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+    else
+        echo "  ✗ Failed to create backup directory: $BACKUP_DIR"
+        exit 1
+    fi
     if cp "$HOME/.zshrc" "$BACKUP_PATH"; then
         echo "  ✓ Backup → $BACKUP_PATH"
     else
@@ -402,6 +409,17 @@ else
     exit 1
 fi
 
+# ── Git aliases (for muscle memory / faster branch switching) ─────────
+
+step "Ensuring git switch aliases..."
+if command -v git &>/dev/null; then
+    git config --global alias.sw switch
+    git config --global alias.swc 'switch --create'
+    echo "  ✓ Set git aliases: sw, swc"
+else
+    echo "  ⚠ git not found; skipped git alias setup"
+fi
+
 # ── ~/.zshenv (skip_global_compinit) ─────────────────────────────────
 
 step "Ensuring ~/.zshenv compatibility..."
@@ -410,12 +428,12 @@ if [ -f "$HOME/.zshenv" ]; then
     if grep -q "^${ZSHENV_LINE}$" "$HOME/.zshenv"; then
         echo "  ✓ ~/.zshenv already has $ZSHENV_LINE"
     else
-        { echo "# zsh-autocomplete: avoid global compinit conflicts."; echo "$ZSHENV_LINE"; echo ""; cat "$HOME/.zshenv"; } > "$HOME/.zshenv.tmp"
+        { echo "# zsh completion: avoid global compinit conflicts."; echo "$ZSHENV_LINE"; echo ""; cat "$HOME/.zshenv"; } > "$HOME/.zshenv.tmp"
         mv "$HOME/.zshenv.tmp" "$HOME/.zshenv"
         echo "  ✓ Added $ZSHENV_LINE to ~/.zshenv"
     fi
 else
-    printf "# zsh-autocomplete: avoid global compinit conflicts.\n%s\n" "$ZSHENV_LINE" > "$HOME/.zshenv"
+    printf "# zsh completion: avoid global compinit conflicts.\n%s\n" "$ZSHENV_LINE" > "$HOME/.zshenv"
     echo "  ✓ Created ~/.zshenv"
 fi
 

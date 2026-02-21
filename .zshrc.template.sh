@@ -10,6 +10,11 @@ fi
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
+# Some IDE terminals start with TERM=dumb, which disables prompt/command colors.
+if [[ -o interactive && -t 1 && "$TERM" == "dumb" ]]; then
+    export TERM=xterm-256color
+fi
+
 HYPHEN_INSENSITIVE="true"
 zstyle ':omz:update' mode auto
 zstyle ':omz:update' frequency 13
@@ -17,18 +22,13 @@ HIST_STAMPS="yyyy-mm-dd"
 
 # ── Plugin detection & compatibility ─────────────────────────────────
 
-_zsh_autocomplete_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+_fzf_tab_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-tab/fzf-tab.plugin.zsh"
 _zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-typeset -gi _zsh_autocomplete_loaded=0
-[[ -r "$_zsh_autocomplete_plugin" ]] && _zsh_autocomplete_loaded=1
+typeset -gi _fzf_tab_loaded=0
+[[ -r "$_fzf_tab_plugin" ]] && _fzf_tab_loaded=1
+typeset -gi _lsd_installed=0
+command -v lsd &>/dev/null && _lsd_installed=1
 typeset -gi _zsh_syntax_highlighting_enabled=1
-autoload -Uz is-at-least
-
-# zsh-autocomplete + zsh-syntax-highlighting on zsh <5.9 causes
-# unhandled widget warnings. Disable highlighting in that case.
-if (( _zsh_autocomplete_loaded )) && ! is-at-least 5.9; then
-    _zsh_syntax_highlighting_enabled=0
-fi
 
 plugins=(
     git
@@ -38,39 +38,21 @@ plugins=(
     z
     fzf
     zsh-autosuggestions
+    zsh-history-substring-search
 )
-
-# zsh-history-substring-search conflicts with zsh-autocomplete arrow keys.
-if (( ! _zsh_autocomplete_loaded )); then
-    plugins+=(zsh-history-substring-search)
-fi
 
 # Load complist (provides menu-select widget for navigable completion menus).
 zmodload -i zsh/complist
 
-# Completion UI fallback when zsh-autocomplete isn't present.
-if (( ! _zsh_autocomplete_loaded )); then
-    zstyle ':completion:*' menu select
-fi
-
-# zsh-autocomplete config must be set BEFORE sourcing the plugin.
-if (( _zsh_autocomplete_loaded )); then
-    # Show completions as you type with a short delay.
-    zstyle ':autocomplete:*' delay 0.05
-    zstyle ':autocomplete:*' list-lines 8
-    # Keep real-time completion responsive in heavy repos (e.g. large git branch sets).
-    zstyle ':autocomplete:*' timeout 0.6
-    zstyle ':autocomplete:*' min-input 3
-
-    # Tab opens a navigable menu (not just insert-best-match).
-    zstyle ':autocomplete:tab:*' insert-unambiguous no
-    zstyle ':autocomplete:tab:*' widget-style menu-select
-    zstyle ':autocomplete:tab:*' fzf-completion no
-
-    source "$_zsh_autocomplete_plugin"
-fi
-
 [[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
+
+# fzf-tab gives interactive fuzzy completion without zsh-autocomplete's
+# async completion pipeline, which can hang on heavy git completions.
+if (( _fzf_tab_loaded )); then
+    source "$_fzf_tab_plugin"
+    zstyle ':fzf-tab:*' fzf-flags '--height=40% --layout=reverse --border'
+    zstyle ':fzf-tab:*' switch-group ',' '.'
+fi
 
 # ══════════════════════════════════════════════════════════════════════
 # Everything below runs AFTER oh-my-zsh so our settings are not
@@ -80,9 +62,7 @@ fi
 # ── Completion styling ───────────────────────────────────────────────
 
 # Re-apply menu select after oh-my-zsh (it can get overridden).
-if (( ! _zsh_autocomplete_loaded )); then
-    zstyle ':completion:*' menu select
-fi
+zstyle ':completion:*' menu select
 
 # Ensure LS_COLORS is set (Ubuntu doesn't always export it in zsh).
 if [[ -z "$LS_COLORS" ]]; then
@@ -140,13 +120,6 @@ if (( ${#_ssh_hosts} )); then
 fi
 unset _ssh_hosts
 
-# zsh-autocomplete group ordering (applied after oh-my-zsh so it sticks)
-if (( _zsh_autocomplete_loaded )); then
-    zstyle ':autocomplete:*' group-order \
-        named-directories directories path-directories recent-directories \
-        history-words files builtins commands functions aliases globbed-files
-fi
-
 # ── Environment ──────────────────────────────────────────────────────
 
 export EDITOR='nano'
@@ -180,11 +153,18 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 
-alias l='ls -lFh'
-alias la='ls -lAFh'
-alias ll='ls -lAh --group-directories-first --color=auto'
+if (( _lsd_installed )); then
+    alias ls='lsd'
+    alias l='lsd -l'
+    alias la='lsd -la'
+    alias ll='lsd -lah'
+else
+    alias l='ls -lFh'
+    alias la='ls -lAFh'
+    alias ll='ls -lAh --group-directories-first --color=auto'
+fi
 alias lt='tree -L 2'
-alias ldot='ls -ld .*'
+alias ldot='command ls -ld .*'
 
 # Use bat for cat (plain output, no paging).
 if command -v bat &>/dev/null; then
@@ -402,7 +382,7 @@ setopt HIST_VERIFY
 
 # History-only suggestions avoid expensive completion lookups that can feel like hangs.
 ZSH_AUTOSUGGEST_STRATEGY=(history)
-ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark
 
@@ -450,50 +430,29 @@ if [[ -o interactive ]]; then
     zle -N up-line-or-beginning-search
     zle -N down-line-or-beginning-search
 
-    if (( _zsh_autocomplete_loaded )); then
-        # zsh-autocomplete shows live completions as you type.
-        # Ctrl+P/N for sticky prefix history search.
-        bindkey '^P' _history_prefix_search_up
-        bindkey '^N' _history_prefix_search_down
+    # Arrow keys → sticky prefix history search
+    [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
+    [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" _history_prefix_search_down
+    bindkey '^[[A' _history_prefix_search_up
+    bindkey '^[[B' _history_prefix_search_down
+    bindkey '^[OA' _history_prefix_search_up
+    bindkey '^[OB' _history_prefix_search_down
+    bindkey '^P'   _history_prefix_search_up
+    bindkey '^N'   _history_prefix_search_down
+    bindkey '^I'   expand-or-complete
+    bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
+    bindkey '^ '   autosuggest-accept          # Ctrl+Space
+    bindkey '^@'   autosuggest-accept          # Ctrl+Space (tmux)
 
-        # Force Tab to open a navigable menu (override zsh-autocomplete default).
-        bindkey '^I'   menu-select
-        bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
-
-        # Menu navigation keys
-        bindkey -M menuselect '^I'   menu-complete           # Tab cycles forward
-        bindkey -M menuselect '^[[Z' reverse-menu-complete   # Shift+Tab cycles back
-        [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
-        [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
-        bindkey -M menuselect '^[[A' up-line-or-history
-        bindkey -M menuselect '^[[B' down-line-or-history
-        bindkey -M menuselect '^[OA' up-line-or-history
-        bindkey -M menuselect '^[OB' down-line-or-history
-    else
-        # Arrow keys → sticky prefix history search
-        [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
-        [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" _history_prefix_search_down
-        bindkey '^[[A' _history_prefix_search_up
-        bindkey '^[[B' _history_prefix_search_down
-        bindkey '^[OA' _history_prefix_search_up
-        bindkey '^[OB' _history_prefix_search_down
-        bindkey '^P'   _history_prefix_search_up
-        bindkey '^N'   _history_prefix_search_down
-        bindkey '^I'   expand-or-complete
-        bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
-        bindkey '^ '   autosuggest-accept          # Ctrl+Space
-        bindkey '^@'   autosuggest-accept          # Ctrl+Space (tmux)
-
-        # Completion menu navigation
-        bindkey -M menuselect '^I'   menu-complete
-        bindkey -M menuselect '^[[Z' reverse-menu-complete
-        [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
-        [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
-        bindkey -M menuselect '^[[A' up-line-or-history
-        bindkey -M menuselect '^[[B' down-line-or-history
-        bindkey -M menuselect '^[OA' up-line-or-history
-        bindkey -M menuselect '^[OB' down-line-or-history
-    fi
+    # Completion menu navigation
+    bindkey -M menuselect '^I'   menu-complete
+    bindkey -M menuselect '^[[Z' reverse-menu-complete
+    [[ -n "${terminfo[kcuu1]}" ]] && bindkey -M menuselect "${terminfo[kcuu1]}" up-line-or-history
+    [[ -n "${terminfo[kcud1]}" ]] && bindkey -M menuselect "${terminfo[kcud1]}" down-line-or-history
+    bindkey -M menuselect '^[[A' up-line-or-history
+    bindkey -M menuselect '^[[B' down-line-or-history
+    bindkey -M menuselect '^[OA' up-line-or-history
+    bindkey -M menuselect '^[OB' down-line-or-history
 
     # Right-arrow/End: accept autosuggestion at end of line
     bindkey '^[[C' forward-char
@@ -520,23 +479,6 @@ if [ -d "$HOME/.pyenv" ]; then
     fi
 fi
 
-# ── Syntax highlighting (loaded late to avoid widget warnings) ───────
-
-if (( _zsh_syntax_highlighting_enabled )) && (( ! $+functions[_zsh_highlight] )); then
-    [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
-fi
-
-if (( _zsh_syntax_highlighting_enabled )) && (( $+functions[_zsh_highlight] )); then
-    ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
-    ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=yellow,bold'
-    ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'
-
-    ZSH_HIGHLIGHT_HIGHLIGHTERS=(main pattern)
-    typeset -gA ZSH_HIGHLIGHT_PATTERNS
-    ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
-    ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
-fi
-
 # ── Powerlevel10k config ─────────────────────────────────────────────
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
@@ -544,3 +486,25 @@ fi
 # ── Local overrides (not managed by setup script) ────────────────────
 
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# ── Syntax highlighting (must be last to hook all widgets) ───────────
+
+if (( _zsh_syntax_highlighting_enabled )); then
+    # Don't use $+functions[_zsh_highlight] as a guard: the
+    # zsh-history-substring-search plugin defines a same-named function.
+    if [[ -z "${ZSH_HIGHLIGHT_VERSION:-}" ]]; then
+        [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
+    fi
+
+    if (( $+functions[_zsh_highlight_highlighter_main_paint] )); then
+        typeset -gA ZSH_HIGHLIGHT_STYLES
+        ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
+        ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=yellow,bold'
+        ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'
+
+        ZSH_HIGHLIGHT_HIGHLIGHTERS=(main pattern)
+        typeset -gA ZSH_HIGHLIGHT_PATTERNS
+        ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
+        ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
+    fi
+fi
