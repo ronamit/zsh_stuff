@@ -258,9 +258,9 @@ pr() {
 
     case "$remote_url" in
         git@*:*)
-            local host="${remote_url#git@}" path="${remote_url#*:}"
+            local host="${remote_url#git@}" repo_path="${remote_url#*:}"
             host="${host%%:*}"
-            repo_url="https://${host}/${path%.git}" ;;
+            repo_url="https://${host}/${repo_path%.git}" ;;
         ssh://git@*)
             repo_url="https://${remote_url#ssh://git@}"
             repo_url="${repo_url%.git}" ;;
