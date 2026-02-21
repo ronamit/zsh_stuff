@@ -386,6 +386,21 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark
 
+# Keep autosuggest acceptance explicit: Tab/Right (not Up/Down).
+typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS
+ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(
+    end-of-line
+    vi-end-of-line
+    vi-add-eol
+    vi-forward-char
+    forward-char
+)
+
+typeset -ga ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS
+ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(
+    forward-word
+)
+
 # ── Shell QoL options ────────────────────────────────────────────────
 
 setopt AUTO_CD              # Type a dir name to cd into it (no 'cd' needed)
@@ -441,8 +456,10 @@ if [[ -o interactive ]]; then
     bindkey '^N'   _history_prefix_search_down
     bindkey '^I'   expand-or-complete
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
-    bindkey '^ '   autosuggest-accept          # Ctrl+Space
-    bindkey '^@'   autosuggest-accept          # Ctrl+Space (tmux)
+    if (( $+widgets[autosuggest-accept] )); then
+        bindkey '^ '   autosuggest-accept      # Ctrl+Space
+        bindkey '^@'   autosuggest-accept      # Ctrl+Space (tmux)
+    fi
 
     # Completion menu navigation
     bindkey -M menuselect '^I'   menu-complete
