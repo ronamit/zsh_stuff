@@ -58,6 +58,9 @@ if (( _zsh_autocomplete_loaded )); then
     # Show completions as you type with a short delay.
     zstyle ':autocomplete:*' delay 0.05
     zstyle ':autocomplete:*' list-lines 8
+    # Keep real-time completion responsive in heavy repos (e.g. large git branch sets).
+    zstyle ':autocomplete:*' timeout 0.6
+    zstyle ':autocomplete:*' min-input 3
 
     # Tab opens a navigable menu (not just insert-best-match).
     zstyle ':autocomplete:tab:*' insert-unambiguous no
@@ -397,7 +400,8 @@ setopt HIST_VERIFY
 
 # ── Autosuggestions ──────────────────────────────────────────────────
 
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+# History-only suggestions avoid expensive completion lookups that can feel like hangs.
+ZSH_AUTOSUGGEST_STRATEGY=(history)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark

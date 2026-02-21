@@ -37,7 +37,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 ## Completions & Autosuggestions
 
-**Ghost suggestions** (inline gray text): From `zsh-autosuggestions` using history + completion. Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
+**Ghost suggestions** (inline gray text): From `zsh-autosuggestions` using history (completion strategy disabled for responsiveness). Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
 
 **Interactive completion menu** (multiple candidates with highlighting): From `zsh-autocomplete` when installed. Current match is highlighted, items are colored by type (dirs in blue, etc.), and grouped under headers like `── directory ──`.
 

@@ -31,7 +31,7 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 
 ## Completion, Autosuggest, and Key Behavior
 
-- `zsh-autosuggestions` shows inline ghost text from history/completion.
+- `zsh-autosuggestions` shows inline ghost text from history (completion strategy disabled for responsiveness).
 - `Right Arrow` or `End` accepts the full suggestion.
 - `Ctrl+Right` (or `Alt+F`) accepts one word from the suggestion.
 - With `zsh-autocomplete` installed:
