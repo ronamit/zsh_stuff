@@ -107,18 +107,28 @@ zstyle ':completion:*' cache-path "$HOME/.zsh/cache"
 zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
-# SSH/SCP: complete hostnames from known_hosts + config
+# SSH/SCP: cache hostnames from known_hosts + ssh config to keep startup fast.
+_ssh_cache_file="$HOME/.zsh/cache/ssh_hosts"
+_refresh_ssh_hosts_cache=0
+[[ ! -f "$_ssh_cache_file" ]] && _refresh_ssh_hosts_cache=1
+[[ -r ~/.ssh/known_hosts && ~/.ssh/known_hosts -nt "$_ssh_cache_file" ]] && _refresh_ssh_hosts_cache=1
+[[ -r ~/.ssh/config && ~/.ssh/config -nt "$_ssh_cache_file" ]] && _refresh_ssh_hosts_cache=1
+if (( _refresh_ssh_hosts_cache )); then
+    {
+        if [[ -r ~/.ssh/known_hosts ]]; then
+            awk '{print $1}' ~/.ssh/known_hosts | tr ',' '\n' | sed 's/\[//;s/\]:.*//' | grep -v '^\|'
+        fi
+        if [[ -r ~/.ssh/config ]]; then
+            grep -i '^Host ' ~/.ssh/config | awk '{for(i=2;i<=NF;i++) if($i !~ /[*?]/) print $i}'
+        fi
+    } | grep -vE '^\s*$' | sort -u >| "$_ssh_cache_file"
+fi
 _ssh_hosts=()
-if [[ -r ~/.ssh/known_hosts ]]; then
-    _ssh_hosts+=(${(f)"$(awk '{print $1}' ~/.ssh/known_hosts | tr ',' '\n' | sed 's/\[//;s/\]:.*//')"})
-fi
-if [[ -r ~/.ssh/config ]]; then
-    _ssh_hosts+=(${(f)"$(grep -i '^Host ' ~/.ssh/config | awk '{for(i=2;i<=NF;i++) if($i !~ /[*?]/) print $i}')"})
-fi
+[[ -r "$_ssh_cache_file" ]] && _ssh_hosts=(${(f)"$(cat "$_ssh_cache_file")"})
 if (( ${#_ssh_hosts} )); then
     zstyle ':completion:*:(ssh|scp|rsync):*' hosts $_ssh_hosts
 fi
-unset _ssh_hosts
+unset _ssh_hosts _ssh_cache_file _refresh_ssh_hosts_cache
 
 # ── Environment ──────────────────────────────────────────────────────
 
@@ -273,8 +283,6 @@ pr() {
 alias v='source .venv/bin/activate 2>/dev/null || source venv/bin/activate 2>/dev/null || echo "No .venv or venv found"'
 alias pyrun='python -m'
 alias pyserver='python -m http.server'
-alias psync='poetry install --sync'
-alias plock='poetry lock && poetry install'
 
 # Auto-activate/deactivate virtualenvs on cd
 autoload -Uz add-zsh-hook
@@ -481,6 +489,7 @@ _down_history_or_dirs() {
 zle -N _down_history_or_dirs
 
 # Auto-show completion list while typing (for manageable candidate sets).
+: "${ZSH_AUTOLIST_ON_TYPE:=0}"
 typeset -g _auto_list_last_buffer=""
 typeset -gi _auto_list_in_paste=0
 _maybe_auto_list_choices() {
@@ -566,10 +575,12 @@ if [[ -o interactive ]]; then
     zle -N down-line-or-beginning-search
 
     # Show completion list automatically while typing; Tab still enters menu cycling.
-    zle -N self-insert _self_insert_with_autolist
-    zle -N magic-space _magic_space_with_autolist
-    zle -N accept-line _accept_line_with_autolist_reset
-    zle -N bracketed-paste _bracketed_paste_with_autolist
+    if (( ZSH_AUTOLIST_ON_TYPE )); then
+        zle -N self-insert _self_insert_with_autolist
+        zle -N magic-space _magic_space_with_autolist
+        zle -N accept-line _accept_line_with_autolist_reset
+        zle -N bracketed-paste _bracketed_paste_with_autolist
+    fi
 
     # Arrow keys → sticky prefix history search
     [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
@@ -580,7 +591,11 @@ if [[ -o interactive ]]; then
     bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
     bindkey '^N'   _down_history_or_dirs
-    bindkey '^I'   autosuggest-accept
+    if (( $+widgets[autosuggest-accept] )); then
+        bindkey '^I' autosuggest-accept
+    else
+        bindkey '^I' expand-or-complete
+    fi
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
         bindkey '^ '   autosuggest-accept      # Ctrl+Space
@@ -616,10 +631,17 @@ fi
 if [ -d "$HOME/.pyenv" ]; then
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
-    eval "$(pyenv init -)"
-    if pyenv commands 2>/dev/null | grep -q virtualenv-init; then
-        eval "$(pyenv virtualenv-init -)"
-    fi
+    _pyenv_bootstrap() {
+        unfunction _pyenv_bootstrap pyenv python pip pip3 2>/dev/null
+        eval "$(command pyenv init -)"
+        if command pyenv commands 2>/dev/null | grep -q virtualenv-init; then
+            eval "$(command pyenv virtualenv-init -)"
+        fi
+    }
+    pyenv()  { _pyenv_bootstrap; command pyenv "$@"; }
+    python() { _pyenv_bootstrap; command python "$@"; }
+    pip()    { _pyenv_bootstrap; command pip "$@"; }
+    pip3()   { _pyenv_bootstrap; command pip3 "$@"; }
 fi
 
 # ── Powerlevel10k config ─────────────────────────────────────────────

@@ -380,8 +380,8 @@ elif [ -f "$HOME/.zshrc" ]; then
         "$HOME/.zshrc" > "$HOME/.zshrc.local" 2>/dev/null || true
 
     if [ -s "$HOME/.zshrc.local" ]; then
-        echo "  ✓ Migrated exports to ~/.zshrc.local:"
-        sed 's/^/    /' "$HOME/.zshrc.local"
+        echo "  ✓ Migrated exports to ~/.zshrc.local (values redacted):"
+        awk -F= '{print "    " $1 "=<redacted>"}' "$HOME/.zshrc.local"
     else
         create_zshrc_local_template
     fi
