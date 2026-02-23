@@ -389,15 +389,16 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dar
 # Keep autosuggest acceptance explicit: Tab/Right (not Up/Down).
 typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS
 ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(
+    autosuggest-accept
     end-of-line
     vi-end-of-line
     vi-add-eol
-    vi-forward-char
-    forward-char
 )
 
 typeset -ga ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS
 ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(
+    vi-forward-char
+    forward-char
     forward-word
 )
 
@@ -554,7 +555,7 @@ if [[ -o interactive ]]; then
     bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
     bindkey '^N'   _down_history_or_dirs
-    bindkey '^I'   menu-complete
+    bindkey '^I'   autosuggest-accept
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
         bindkey '^ '   autosuggest-accept      # Ctrl+Space
