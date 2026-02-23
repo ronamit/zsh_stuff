@@ -482,8 +482,11 @@ zle -N _down_history_or_dirs
 
 # Auto-show completion list while typing (for manageable candidate sets).
 typeset -g _auto_list_last_buffer=""
+typeset -gi _auto_list_in_paste=0
 _maybe_auto_list_choices() {
     # Only while typing at end-of-line; avoid noisy redraws.
+    (( _auto_list_in_paste )) && return
+    (( KEYS_QUEUED_COUNT > 0 )) && return
     (( CURSOR == ${#BUFFER} )) || return
     [[ -n "$PENDING" && "$PENDING" != "0" ]] && return
     [[ "$LBUFFER" == "$_auto_list_last_buffer" ]] && return
@@ -507,6 +510,15 @@ _maybe_auto_list_choices() {
 zle -N _maybe_auto_list_choices
 
 _self_insert_with_autolist() {
+    (( _auto_list_in_paste || KEYS_QUEUED_COUNT > 0 )) && {
+        if (( $+widgets[autosuggest-self-insert] )); then
+            zle autosuggest-self-insert
+        else
+            zle .self-insert
+        fi
+        return
+    }
+
     if (( $+widgets[autosuggest-self-insert] )); then
         zle autosuggest-self-insert
     else
@@ -536,6 +548,18 @@ _accept_line_with_autolist_reset() {
 }
 zle -N _accept_line_with_autolist_reset
 
+_bracketed_paste_with_autolist() {
+    _auto_list_in_paste=1
+    if (( $+widgets[autosuggest-bracketed-paste] )); then
+        zle autosuggest-bracketed-paste
+    else
+        zle .bracketed-paste
+    fi
+    _auto_list_in_paste=0
+    _auto_list_last_buffer=""
+}
+zle -N _bracketed_paste_with_autolist
+
 if [[ -o interactive ]]; then
     autoload -U up-line-or-beginning-search down-line-or-beginning-search
     zle -N up-line-or-beginning-search
@@ -545,6 +569,7 @@ if [[ -o interactive ]]; then
     zle -N self-insert _self_insert_with_autolist
     zle -N magic-space _magic_space_with_autolist
     zle -N accept-line _accept_line_with_autolist_reset
+    zle -N bracketed-paste _bracketed_paste_with_autolist
 
     # Arrow keys → sticky prefix history search
     [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
