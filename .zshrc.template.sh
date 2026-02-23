@@ -410,6 +410,12 @@ setopt PUSHD_SILENT         # Don't print dir stack after pushd/popd
 setopt CORRECT              # Offer correction for mistyped commands (not args)
 setopt INTERACTIVE_COMMENTS # Allow # comments in interactive shell
 setopt GLOB_DOTS            # Include dotfiles in glob patterns
+setopt AUTO_LIST            # Show completion options below prompt on ambiguous matches
+setopt AUTO_MENU            # Repeated completion keys cycle through matches
+unsetopt MENU_COMPLETE      # Keep list+menu behavior instead of replacing buffer immediately
+
+# If completion list is too long, ask before showing all entries.
+LISTMAX=30
 
 # ── Key bindings ─────────────────────────────────────────────────────
 
@@ -473,10 +479,71 @@ _down_history_or_dirs() {
 }
 zle -N _down_history_or_dirs
 
+# Auto-show completion list while typing (for manageable candidate sets).
+typeset -g _auto_list_last_buffer=""
+_maybe_auto_list_choices() {
+    # Only while typing at end-of-line; avoid noisy redraws.
+    (( CURSOR == ${#BUFFER} )) || return
+    [[ -n "$PENDING" && "$PENDING" != "0" ]] && return
+    [[ "$LBUFFER" == "$_auto_list_last_buffer" ]] && return
+
+    local -a _words
+    local _current
+    _words=(${(z)LBUFFER})
+    _current="${_words[-1]}"
+
+    # Don't spam for tiny prefixes or option flags.
+    [[ -n "$_current" ]] || return
+    (( ${#_current} >= 2 )) || return
+    [[ "$_current" == -* ]] && return
+
+    # Keep it focused to common completion contexts.
+    if [[ "$_current" == */* || "$_current" == .* || "$_current" == ~* || "$_current" == [[:alnum:]_][[:alnum:]_.-]# ]]; then
+        _auto_list_last_buffer="$LBUFFER"
+        zle list-choices
+    fi
+}
+zle -N _maybe_auto_list_choices
+
+_self_insert_with_autolist() {
+    if (( $+widgets[autosuggest-self-insert] )); then
+        zle autosuggest-self-insert
+    else
+        zle .self-insert
+    fi
+    zle _maybe_auto_list_choices
+}
+zle -N _self_insert_with_autolist
+
+_magic_space_with_autolist() {
+    if (( $+widgets[autosuggest-magic-space] )); then
+        zle autosuggest-magic-space
+    else
+        zle .magic-space
+    fi
+    _auto_list_last_buffer=""
+}
+zle -N _magic_space_with_autolist
+
+_accept_line_with_autolist_reset() {
+    _auto_list_last_buffer=""
+    if (( $+widgets[autosuggest-accept-line] )); then
+        zle autosuggest-accept-line
+    else
+        zle .accept-line
+    fi
+}
+zle -N _accept_line_with_autolist_reset
+
 if [[ -o interactive ]]; then
     autoload -U up-line-or-beginning-search down-line-or-beginning-search
     zle -N up-line-or-beginning-search
     zle -N down-line-or-beginning-search
+
+    # Show completion list automatically while typing; Tab still enters menu cycling.
+    zle -N self-insert _self_insert_with_autolist
+    zle -N magic-space _magic_space_with_autolist
+    zle -N accept-line _accept_line_with_autolist_reset
 
     # Arrow keys → sticky prefix history search
     [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
@@ -487,7 +554,7 @@ if [[ -o interactive ]]; then
     bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
     bindkey '^N'   _down_history_or_dirs
-    bindkey '^I'   expand-or-complete
+    bindkey '^I'   menu-complete
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
         bindkey '^ '   autosuggest-accept      # Ctrl+Space
