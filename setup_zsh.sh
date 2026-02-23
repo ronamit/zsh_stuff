@@ -312,13 +312,18 @@ bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
 setw -g mode-keys vi
 
 # Clipboard: wl-copy (Wayland) → xclip (X11) → tmux buffer
-if-shell 'command -v wl-copy >/dev/null 2>&1' \
-  'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "wl-copy"' \
-  'if-shell "command -v xclip >/dev/null 2>&1" "bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel \"xclip -in -selection clipboard\"" "bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel"'
+# Safe default when no external clipboard helper exists.
+bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+bind-key -T copy-mode-vi Enter send-keys -X copy-selection-and-cancel
 
 if-shell 'command -v wl-copy >/dev/null 2>&1' \
-  'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "wl-copy"' \
-  'if-shell "command -v xclip >/dev/null 2>&1" "bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel \"xclip -in -selection clipboard\"" "bind-key -T copy-mode-vi Enter send-keys -X copy-selection-and-cancel"'
+  'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell 'command -v wl-copy >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 # <<< zsh_stuff tmux defaults <<<
 EOF
 )
