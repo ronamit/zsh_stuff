@@ -432,8 +432,8 @@ setopt AUTO_LIST            # Show completion options below prompt on ambiguous 
 setopt AUTO_MENU            # Repeated completion keys cycle through matches
 unsetopt MENU_COMPLETE      # Keep list+menu behavior instead of replacing buffer immediately
 
-# If completion list is too long, ask before showing all entries.
-LISTMAX=30
+# Keep auto-list non-interrupting: effectively never prompt "show all".
+LISTMAX=100000
 
 # ── Key bindings ─────────────────────────────────────────────────────
 
@@ -498,7 +498,8 @@ _down_history_or_dirs() {
 zle -N _down_history_or_dirs
 
 # Auto-show completion list while typing (for manageable candidate sets).
-: "${ZSH_AUTOLIST_ON_TYPE:=0}"
+# Force enabled so suggestions appear before pressing Down.
+typeset -gi ZSH_AUTOLIST_ON_TYPE=1
 typeset -g _auto_list_last_buffer=""
 typeset -gi _auto_list_in_paste=0
 _maybe_auto_list_choices() {
@@ -506,21 +507,58 @@ _maybe_auto_list_choices() {
     (( _auto_list_in_paste )) && return
     (( KEYS_QUEUED_COUNT > 0 )) && return
     (( CURSOR == ${#BUFFER} )) || return
-    [[ -n "$PENDING" && "$PENDING" != "0" ]] && return
     [[ "$LBUFFER" == "$_auto_list_last_buffer" ]] && return
 
     local -a _words
-    local _current
+    local _current _cmd _is_cd_context=0 _is_ssh_context=0 _has_trailing_space=0
+    [[ "$LBUFFER" == *[[:space:]] ]] && _has_trailing_space=1
     _words=(${(z)LBUFFER})
+    (( ${#_words} )) || return
     _current="${_words[-1]}"
+    _cmd="${_words[1]}"
+
+    # Always allow path completion previews for cd-like commands once an
+    # argument has started (e.g., "cd D" should immediately list candidates).
+    if [[ "$_cmd" == "cd" || "$_cmd" == "pushd" || "$_cmd" == "popd" ]]; then
+        (( ${#_words} >= 2 )) && _is_cd_context=1
+    fi
+    if [[ "$_cmd" == "ssh" || "$_cmd" == "scp" || "$_cmd" == "rsync" ]]; then
+        (( ${#_words} >= 2 )) && _is_ssh_context=1
+    fi
+
+    # After a space, refresh completions for the next argument position.
+    if (( _has_trailing_space )); then
+        # Keep command-position noise off in auto mode.
+        (( ${#_words} >= 2 )) || return
+        # Restrict auto-popups to path/host oriented commands.
+        if [[ "$_cmd" != "cd" && "$_cmd" != "pushd" && "$_cmd" != "popd" &&
+              "$_cmd" != "ls" && "$_cmd" != "cat" && "$_cmd" != "less" &&
+              "$_cmd" != "more" && "$_cmd" != "vim" && "$_cmd" != "nano" &&
+              "$_cmd" != "rm" && "$_cmd" != "cp" && "$_cmd" != "mv" &&
+              "$_cmd" != "mkdir" && "$_cmd" != "rmdir" && "$_cmd" != "touch" &&
+              "$_cmd" != "ssh" && "$_cmd" != "scp" && "$_cmd" != "rsync" ]]; then
+            return
+        fi
+        _auto_list_last_buffer="$LBUFFER"
+        zle list-choices
+        return
+    fi
+
+    # Keep command-position auto-list quiet (avoid external command spam).
+    if (( ${#_words} == 1 )) && [[ "$_current" != */* && "$_current" != .* && "$_current" != ~* ]]; then
+        return
+    fi
 
     # Don't spam for tiny prefixes or option flags.
     [[ -n "$_current" ]] || return
-    (( ${#_current} >= 2 )) || return
-    [[ "$_current" == -* ]] && return
+    if (( ! _is_cd_context )); then
+        (( ${#_current} >= 2 )) || return
+        [[ "$_current" == -* ]] && return
+    fi
 
     # Keep it focused to common completion contexts.
-    if [[ "$_current" == */* || "$_current" == .* || "$_current" == ~* || "$_current" == [[:alnum:]_][[:alnum:]_.-]# ]]; then
+    if (( _is_cd_context || _is_ssh_context )) || \
+       [[ "$_current" == */* || "$_current" == .* || "$_current" == ~* || "$_current" == <-> ]]; then
         _auto_list_last_buffer="$LBUFFER"
         zle list-choices
     fi
@@ -553,6 +591,7 @@ _magic_space_with_autolist() {
         zle .magic-space
     fi
     _auto_list_last_buffer=""
+    zle _maybe_auto_list_choices
 }
 zle -N _magic_space_with_autolist
 
@@ -633,6 +672,12 @@ if [[ -o interactive ]]; then
 
     # Ctrl+Z: undo last edit on command line
     bindkey '^Z' undo
+
+    # We replaced core widgets (self-insert/magic-space/accept-line), so ask
+    # autosuggestions to rebind around the current widget map.
+    if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
+        _zsh_autosuggest_bind_widgets
+    fi
 fi
 
 # ── Pyenv (if installed) ────────────────────────────────────────────
@@ -680,5 +725,10 @@ if (( _zsh_syntax_highlighting_enabled )); then
         typeset -gA ZSH_HIGHLIGHT_PATTERNS
         ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
         ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
+    fi
+
+    # Re-wrap any widgets created or reassigned earlier in this file.
+    if (( $+functions[_zsh_highlight_bind_widgets] )); then
+        _zsh_highlight_bind_widgets
     fi
 fi
