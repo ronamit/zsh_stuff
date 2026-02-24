@@ -17,6 +17,9 @@ set -uo pipefail
 TMUX_CONF="$HOME/.tmux.conf"
 TMUX_MARKER_BEGIN="# >>> zsh_stuff tmux defaults >>>"
 TMUX_MARKER_END="# <<< zsh_stuff tmux defaults <<<"
+SSH_CONFIG="$HOME/.ssh/config"
+SSH_MARKER_BEGIN="# >>> zsh_stuff ssh keepalive >>>"
+SSH_MARKER_END="# <<< zsh_stuff ssh keepalive <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
 BACKUP_DIR="$HOME/.zsh_backups"
@@ -345,6 +348,41 @@ else
     printf "%s\n" "$TMUX_BLOCK" > "$TMUX_CONF"
     echo "  ✓ Created $TMUX_CONF"
 fi
+
+# ── SSH keepalive defaults ───────────────────────────────────────────
+
+step "Configuring SSH keepalive defaults..."
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh" 2>/dev/null || true
+
+SSH_BLOCK=$(cat << 'EOF'
+# >>> zsh_stuff ssh keepalive >>>
+Host *
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+# <<< zsh_stuff ssh keepalive <<<
+EOF
+)
+
+if [ -f "$SSH_CONFIG" ]; then
+    if grep -qF "$SSH_MARKER_BEGIN" "$SSH_CONFIG" && grep -qF "$SSH_MARKER_END" "$SSH_CONFIG"; then
+        awk -v start="$SSH_MARKER_BEGIN" -v end="$SSH_MARKER_END" -v block="$SSH_BLOCK" '
+            $0 == start { print block; in_block=1; next }
+            $0 == end   { in_block=0; next }
+            !in_block   { print }
+        ' "$SSH_CONFIG" > "$SSH_CONFIG.tmp"
+        mv "$SSH_CONFIG.tmp" "$SSH_CONFIG"
+        echo "  ✓ Updated managed SSH keepalive block"
+    else
+        printf "\n%s\n" "$SSH_BLOCK" >> "$SSH_CONFIG"
+        echo "  ✓ Appended SSH keepalive block to $SSH_CONFIG"
+    fi
+else
+    printf "%s\n" "$SSH_BLOCK" > "$SSH_CONFIG"
+    echo "  ✓ Created $SSH_CONFIG"
+fi
+chmod 600 "$SSH_CONFIG" 2>/dev/null || true
 
 # ── Hack Nerd Font ───────────────────────────────────────────────────
 

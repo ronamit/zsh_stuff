@@ -116,7 +116,10 @@ _refresh_ssh_hosts_cache=0
 if (( _refresh_ssh_hosts_cache )); then
     {
         if [[ -r ~/.ssh/known_hosts ]]; then
-            awk '{print $1}' ~/.ssh/known_hosts | tr ',' '\n' | sed 's/\[//;s/\]:.*//' | grep -v '^\|'
+            awk '{print $1}' ~/.ssh/known_hosts \
+                | tr ',' '\n' \
+                | sed 's/\[//;s/\]:.*//' \
+                | grep -vE '^(\||#|$)'
         fi
         if [[ -r ~/.ssh/config ]]; then
             grep -i '^Host ' ~/.ssh/config | awk '{for(i=2;i<=NF;i++) if($i !~ /[*?]/) print $i}'
@@ -411,6 +414,12 @@ ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(
 )
 
 # ── Shell QoL options ────────────────────────────────────────────────
+
+# Prevent accidental Ctrl+S from freezing terminal output (XON/XOFF flow control),
+# which is especially confusing inside tmux over SSH.
+if [[ -o interactive ]]; then
+    stty -ixon -ixoff 2>/dev/null || true
+fi
 
 setopt AUTO_CD              # Type a dir name to cd into it (no 'cd' needed)
 setopt AUTO_PUSHD           # cd pushes onto the dir stack (use 'cd -N' to go back)
