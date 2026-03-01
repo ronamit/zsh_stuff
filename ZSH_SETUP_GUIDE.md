@@ -42,7 +42,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 **Interactive completion menu** (multiple candidates with fuzzy selection): From `fzf-tab` on `Tab`, backed by zsh completion.
 
-**Live path candidates while typing**: For `cd`/path-oriented commands, the completion list appears as you type (without pressing `Tab`). Toggle with `ZSH_AUTOLIST_ON_TYPE` (`1` on, `0` off; default `1`).
+**Live path candidates while typing**: For `cd`/path-oriented commands, the completion list appears as you type (without pressing `Tab`). Toggle with `ZSH_AUTOLIST_ON_TYPE` (`1` on, `0` off; default `0`).
 For bare `cd `, auto-open is gated by `ZSH_AUTOLIST_CD_EMPTY_MAX` (default `12`) so it opens early only when candidate count is small.
 
 **Smart matching**: Completions are case-insensitive and support partial matching — typing `doc` matches `Documents`, `vid` matches `Videos`.
@@ -94,8 +94,8 @@ nano ~/zsh_stuff/.zshrc.template.sh
 # Edit personal/local settings
 nano ~/.zshrc.local
 
-# Optional: turn off live auto-list while typing
-echo 'export ZSH_AUTOLIST_ON_TYPE=0' >> ~/.zshrc.local
+# Optional: turn on live auto-list while typing
+echo 'export ZSH_AUTOLIST_ON_TYPE=1' >> ~/.zshrc.local
 
 # Optional: show `cd ` candidates earlier when there are few dirs
 echo 'export ZSH_AUTOLIST_CD_EMPTY_MAX=20' >> ~/.zshrc.local

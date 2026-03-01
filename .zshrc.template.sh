@@ -472,8 +472,8 @@ setopt AUTO_LIST            # Show completion options below prompt on ambiguous 
 setopt AUTO_MENU            # Repeated completion keys cycle through matches
 unsetopt MENU_COMPLETE      # Keep list+menu behavior instead of replacing buffer immediately
 
-# Keep auto-list non-interrupting: effectively never prompt "show all".
-LISTMAX=100000
+# Prompt before printing very large completion lists (prevents terminal spam).
+LISTMAX=20
 
 # ── Key bindings ─────────────────────────────────────────────────────
 
@@ -539,8 +539,8 @@ zle -N _down_history_or_dirs
 
 # Auto-show completion list while typing (for manageable candidate sets).
 # Configurable: 1/on/true/yes enables; 0/off/false/no disables.
-# Default is enabled.
-: "${ZSH_AUTOLIST_ON_TYPE:=1}"
+# Default is disabled to avoid noisy dumps in large directories.
+: "${ZSH_AUTOLIST_ON_TYPE:=0}"
 # When typing `cd ` + space with an empty argument, auto-open early only when
 # local directory count is small (keeps this useful but non-spammy).
 : "${ZSH_AUTOLIST_CD_EMPTY_MAX:=12}"
