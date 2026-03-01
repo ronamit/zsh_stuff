@@ -123,6 +123,8 @@ create_zshrc_local_template() {
     cat > "$HOME/.zshrc.local" << 'EOF'
 # ~/.zshrc.local — Personal settings (not managed by setup_zsh.sh)
 # Add exports, tokens, and machine-specific overrides here.
+# Toggle live auto-list while typing (cd/path suggestions):
+# export ZSH_AUTOLIST_ON_TYPE=1   # 1=on (default), 0=off
 
 # export GITHUB_TOKEN="ghp_xxxxx"
 # export OPENAI_API_KEY="sk-xxxxx"

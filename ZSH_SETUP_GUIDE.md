@@ -38,9 +38,11 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 ## Completions & Autosuggestions
 
-**Ghost suggestions** (inline gray text): From `zsh-autosuggestions` using history (completion strategy disabled for responsiveness). Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
+**Ghost suggestions** (inline gray text): From `zsh-autosuggestions`, shown live while you type (history first, then completion fallback). Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
 
 **Interactive completion menu** (multiple candidates with fuzzy selection): From `fzf-tab` on `Tab`, backed by zsh completion.
+
+**Live path candidates while typing**: For `cd`/path-oriented commands, the completion list appears as you type (without pressing `Tab`). Toggle with `ZSH_AUTOLIST_ON_TYPE` (`1` on, `0` off; default `1`).
 
 **Smart matching**: Completions are case-insensitive and support partial matching — typing `doc` matches `Documents`, `vid` matches `Videos`.
 
@@ -90,6 +92,9 @@ nano ~/zsh_stuff/.zshrc.template.sh
 
 # Edit personal/local settings
 nano ~/.zshrc.local
+
+# Optional: turn off live auto-list while typing
+echo 'export ZSH_AUTOLIST_ON_TYPE=0' >> ~/.zshrc.local
 
 # Apply changes
 source ~/.zshrc

@@ -23,9 +23,12 @@ HIST_STAMPS="yyyy-mm-dd"
 # ── Plugin detection & compatibility ─────────────────────────────────
 
 _fzf_tab_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-tab/fzf-tab.plugin.zsh"
+_zsh_autosuggest_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 _zsh_highlight_plugin="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 typeset -gi _fzf_tab_loaded=0
 [[ -r "$_fzf_tab_plugin" ]] && _fzf_tab_loaded=1
+typeset -gi _zsh_autosuggest_loaded=0
+[[ -r "$_zsh_autosuggest_plugin" ]] && _zsh_autosuggest_loaded=1
 typeset -gi _lsd_installed=0
 command -v lsd &>/dev/null && _lsd_installed=1
 typeset -gi _zsh_syntax_highlighting_enabled=1
@@ -37,7 +40,6 @@ plugins=(
     extract
     z
     fzf
-    zsh-autosuggestions
     zsh-history-substring-search
 )
 
@@ -391,11 +393,18 @@ setopt HIST_VERIFY
 
 # ── Autosuggestions ──────────────────────────────────────────────────
 
-# History-only suggestions avoid expensive completion lookups that can feel like hangs.
+# Show suggestions as you type (history first, then completion fallback).
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=80
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dark
+# We define custom widgets later, so do one bind pass after all widget changes.
+ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+
+# Load autosuggestions after fzf-tab to avoid widget conflicts.
+if (( _zsh_autosuggest_loaded )); then
+    source "$_zsh_autosuggest_plugin"
+fi
 
 # Keep autosuggest acceptance explicit: Tab/Right (not Up/Down).
 typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS
@@ -432,8 +441,8 @@ setopt AUTO_LIST            # Show completion options below prompt on ambiguous 
 setopt AUTO_MENU            # Repeated completion keys cycle through matches
 unsetopt MENU_COMPLETE      # Keep list+menu behavior instead of replacing buffer immediately
 
-# Keep default-like behavior for long completion lists.
-LISTMAX=100
+# Keep auto-list non-interrupting: effectively never prompt "show all".
+LISTMAX=100000
 
 # ── Key bindings ─────────────────────────────────────────────────────
 
@@ -497,10 +506,170 @@ _down_history_or_dirs() {
 }
 zle -N _down_history_or_dirs
 
+# Auto-show completion list while typing (for manageable candidate sets).
+# Configurable: 1/on/true/yes enables; 0/off/false/no disables.
+# Default is enabled.
+: "${ZSH_AUTOLIST_ON_TYPE:=1}"
+typeset -g _auto_list_last_buffer=""
+typeset -gi _auto_list_in_paste=0
+_maybe_auto_list_choices() {
+    # Only while typing at end-of-line; avoid noisy redraws.
+    (( _auto_list_in_paste )) && return
+    (( KEYS_QUEUED_COUNT > 0 )) && return
+    (( CURSOR == ${#BUFFER} )) || return
+    [[ "$LBUFFER" == "$_auto_list_last_buffer" ]] && return
+
+    local -a _words
+    local _current _cmd _is_cd_context=0 _is_ssh_context=0 _has_trailing_space=0
+    [[ "$LBUFFER" == *[[:space:]] ]] && _has_trailing_space=1
+    _words=(${(z)LBUFFER})
+    (( ${#_words} )) || return
+    _current="${_words[-1]}"
+    _cmd="${_words[1]}"
+
+    # Always allow path completion previews for cd-like commands once an
+    # argument has started (e.g., "cd D" should immediately list candidates).
+    if [[ "$_cmd" == "cd" || "$_cmd" == "pushd" || "$_cmd" == "popd" ]]; then
+        (( ${#_words} >= 2 )) && _is_cd_context=1
+    fi
+    if [[ "$_cmd" == "ssh" || "$_cmd" == "scp" || "$_cmd" == "rsync" ]]; then
+        (( ${#_words} >= 2 )) && _is_ssh_context=1
+    fi
+
+    # After a space, refresh completions for the next argument position.
+    if (( _has_trailing_space )); then
+        # Keep command-position noise off in auto mode.
+        (( ${#_words} >= 2 )) || return
+        # Restrict auto-popups to path/host oriented commands.
+        if [[ "$_cmd" != "cd" && "$_cmd" != "pushd" && "$_cmd" != "popd" &&
+              "$_cmd" != "ls" && "$_cmd" != "cat" && "$_cmd" != "less" &&
+              "$_cmd" != "more" && "$_cmd" != "vim" && "$_cmd" != "nano" &&
+              "$_cmd" != "rm" && "$_cmd" != "cp" && "$_cmd" != "mv" &&
+              "$_cmd" != "mkdir" && "$_cmd" != "rmdir" && "$_cmd" != "touch" &&
+              "$_cmd" != "ssh" && "$_cmd" != "scp" && "$_cmd" != "rsync" ]]; then
+            return
+        fi
+        _auto_list_last_buffer="$LBUFFER"
+        zle list-choices
+        return
+    fi
+
+    # Keep command-position auto-list quiet (avoid external command spam).
+    if (( ${#_words} == 1 )) && [[ "$_current" != */* && "$_current" != .* && "$_current" != ~* ]]; then
+        return
+    fi
+
+    # Don't spam for tiny prefixes or option flags.
+    [[ -n "$_current" ]] || return
+    if (( ! _is_cd_context )); then
+        (( ${#_current} >= 2 )) || return
+        [[ "$_current" == -* ]] && return
+    fi
+
+    # Keep it focused to common completion contexts.
+    if (( _is_cd_context || _is_ssh_context )) || \
+       [[ "$_current" == */* || "$_current" == .* || "$_current" == ~* || "$_current" == <-> ]]; then
+        _auto_list_last_buffer="$LBUFFER"
+        zle list-choices
+    fi
+}
+zle -N _maybe_auto_list_choices
+
+_self_insert_with_autolist() {
+    (( _auto_list_in_paste || KEYS_QUEUED_COUNT > 0 )) && {
+        if (( $+widgets[autosuggest-self-insert] )); then
+            zle autosuggest-self-insert
+        else
+            zle .self-insert
+        fi
+        return
+    }
+
+    if (( $+widgets[autosuggest-self-insert] )); then
+        zle autosuggest-self-insert
+    else
+        zle .self-insert
+    fi
+    zle _maybe_auto_list_choices
+}
+zle -N _self_insert_with_autolist
+
+_magic_space_with_autolist() {
+    if (( $+widgets[autosuggest-magic-space] )); then
+        zle autosuggest-magic-space
+    else
+        zle .magic-space
+    fi
+    _auto_list_last_buffer=""
+    zle _maybe_auto_list_choices
+}
+zle -N _magic_space_with_autolist
+
+_accept_line_with_autolist_reset() {
+    _auto_list_last_buffer=""
+    if (( $+widgets[autosuggest-accept-line] )); then
+        zle autosuggest-accept-line
+    else
+        zle .accept-line
+    fi
+}
+zle -N _accept_line_with_autolist_reset
+
+_bracketed_paste_with_autolist() {
+    _auto_list_in_paste=1
+    if (( $+widgets[autosuggest-bracketed-paste] )); then
+        zle autosuggest-bracketed-paste
+    else
+        zle .bracketed-paste
+    fi
+    _auto_list_in_paste=0
+    _auto_list_last_buffer=""
+}
+zle -N _bracketed_paste_with_autolist
+
+_autolist_is_enabled() {
+    local _v="${ZSH_AUTOLIST_ON_TYPE:-1}"
+    _v="${_v:l}"
+    [[ "$_v" == "1" || "$_v" == "on" || "$_v" == "true" || "$_v" == "yes" ]]
+}
+
+_apply_autolist_mode() {
+    if _autolist_is_enabled; then
+        zle -N self-insert _self_insert_with_autolist
+        zle -N magic-space _magic_space_with_autolist
+        zle -N accept-line _accept_line_with_autolist_reset
+        zle -N bracketed-paste _bracketed_paste_with_autolist
+    else
+        if (( $+widgets[autosuggest-self-insert] )); then
+            zle -A autosuggest-self-insert self-insert
+        else
+            zle -A .self-insert self-insert
+        fi
+        if (( $+widgets[autosuggest-magic-space] )); then
+            zle -A autosuggest-magic-space magic-space
+        else
+            zle -A .magic-space magic-space
+        fi
+        if (( $+widgets[autosuggest-accept-line] )); then
+            zle -A autosuggest-accept-line accept-line
+        else
+            zle -A .accept-line accept-line
+        fi
+        if (( $+widgets[autosuggest-bracketed-paste] )); then
+            zle -A autosuggest-bracketed-paste bracketed-paste
+        elif (( $+widgets[.bracketed-paste] )); then
+            zle -A .bracketed-paste bracketed-paste
+        fi
+    fi
+}
+
 if [[ -o interactive ]]; then
     autoload -U up-line-or-beginning-search down-line-or-beginning-search
     zle -N up-line-or-beginning-search
     zle -N down-line-or-beginning-search
+
+    # Apply current auto-list mode (on by default, configurable).
+    _apply_autolist_mode
 
     # Arrow keys → sticky prefix history search
     [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" _history_prefix_search_up
@@ -573,6 +742,11 @@ fi
 
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
 
+# Allow ~/.zshrc.local to toggle auto-list mode without editing this file.
+if [[ -o interactive ]] && (( $+functions[_apply_autolist_mode] )); then
+    _apply_autolist_mode
+fi
+
 # ── Syntax highlighting (must be last to hook all widgets) ───────────
 
 if (( _zsh_syntax_highlighting_enabled )); then
@@ -598,4 +772,9 @@ if (( _zsh_syntax_highlighting_enabled )); then
     if (( $+functions[_zsh_highlight_bind_widgets] )); then
         _zsh_highlight_bind_widgets
     fi
+fi
+
+# With manual rebind enabled, wrap final widget set once at the very end.
+if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
+    _zsh_autosuggest_bind_widgets
 fi
