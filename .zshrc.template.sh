@@ -539,11 +539,11 @@ zle -N _down_history_or_dirs
 
 # Auto-show completion list while typing (for manageable candidate sets).
 # Configurable: 1/on/true/yes enables; 0/off/false/no disables.
-# Default is disabled to avoid noisy dumps in large directories.
-: "${ZSH_AUTOLIST_ON_TYPE:=0}"
+# Default is enabled for immediate `cd`/path candidate previews while typing.
+: "${ZSH_AUTOLIST_ON_TYPE:=1}"
 # When typing `cd ` + space with an empty argument, auto-open early only when
 # local directory count is small (keeps this useful but non-spammy).
-: "${ZSH_AUTOLIST_CD_EMPTY_MAX:=12}"
+: "${ZSH_AUTOLIST_CD_EMPTY_MAX:=20}"
 typeset -g _auto_list_last_buffer=""
 typeset -gi _auto_list_in_paste=0
 typeset -g _autolist_cd_cache_pwd=""
@@ -557,8 +557,8 @@ _autolist_invalidate_cd_cache() {
 }
 
 _should_autolist_empty_cd_arg() {
-    local _raw="${ZSH_AUTOLIST_CD_EMPTY_MAX:-12}"
-    local -i _max=12
+    local _raw="${ZSH_AUTOLIST_CD_EMPTY_MAX:-20}"
+    local -i _max=20
     local -i _count=0
     local _d
 
