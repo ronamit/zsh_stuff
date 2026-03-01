@@ -32,16 +32,31 @@ typeset -gi _zsh_autosuggest_loaded=0
 typeset -gi _lsd_installed=0
 command -v lsd &>/dev/null && _lsd_installed=1
 typeset -gi _zsh_syntax_highlighting_enabled=1
+typeset -gi _command_not_found_enabled=1
+
+# command-not-found can add latency on slower/remote sessions.
+# Defaults: disabled over SSH, enabled locally. Override with:
+#   ZSH_ENABLE_COMMAND_NOT_FOUND=1  (force on)
+#   ZSH_ENABLE_COMMAND_NOT_FOUND=0  (force off)
+if [[ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ]]; then
+    _command_not_found_enabled=0
+fi
+if [[ -n "${ZSH_ENABLE_COMMAND_NOT_FOUND:-}" ]]; then
+    case "${ZSH_ENABLE_COMMAND_NOT_FOUND:l}" in
+        1|on|true|yes) _command_not_found_enabled=1 ;;
+        0|off|false|no) _command_not_found_enabled=0 ;;
+    esac
+fi
 
 plugins=(
     git
     colored-man-pages
-    command-not-found
     extract
     z
     fzf
     zsh-history-substring-search
 )
+(( _command_not_found_enabled )) && plugins+=(command-not-found)
 
 # Load complist (provides menu-select widget for navigable completion menus).
 zmodload -i zsh/complist
@@ -75,11 +90,8 @@ if [[ -z "$LS_COLORS" ]]; then
     fi
 fi
 
-# Group completions by type with headers (── directory ──, ── file ──, etc.)
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*:descriptions' format '%F{yellow}%B── %d ──%b%f'
-zstyle ':completion:*:warnings'     format '%F{red}── no matches ──%f'
-zstyle ':completion:*:messages'     format '%F{cyan}%d%f'
+# Keep completion output minimal (no category headers like "local directory").
+# You still get completion candidates and menu-select behavior.
 
 # Color completions by file type (dirs=blue, exes=green, symlinks=cyan)
 # and highlight the currently selected item.
@@ -92,8 +104,8 @@ zstyle ':completion:*' matcher-list \
     'r:|[._-]=* r:|=*' \
     'l:|=* r:|=*'
 
-# Show option/flag descriptions
-zstyle ':completion:*' verbose yes
+# Keep completion lists clean and compact.
+zstyle ':completion:*' verbose no
 
 # Directories first for cd; don't offer . or ..
 zstyle ':completion:*' list-dirs-first true
@@ -335,15 +347,24 @@ fi
 # ── Functions ────────────────────────────────────────────────────────
 
 # Find files by name
-ff() { find . -type f -iname "*${1:?usage: ff PATTERN}*" 2>/dev/null; }
+ff() {
+    local pattern="${1:?usage: ff PATTERN}"
+    if command -v fd &>/dev/null; then
+        fd -HI -t f --glob "*${pattern}*" .
+    elif command -v fdfind &>/dev/null; then
+        fdfind -HI -t f --glob "*${pattern}*" .
+    else
+        find . -type f -iname "*${pattern}*" 2>/dev/null
+    fi
+}
 
 # Find text in files (prefer ripgrep)
 ftext() {
     local pattern="${1:?usage: ftext PATTERN}"
     if command -v rg &>/dev/null; then
-        rg "$pattern"
+        rg --smart-case --hidden -g '!.git' "$pattern"
     else
-        grep -rnw . -e "$pattern" 2>/dev/null
+        grep -RIn --exclude-dir=.git -e "$pattern" . 2>/dev/null
     fi
 }
 
@@ -382,7 +403,12 @@ HISTSIZE=100000
 SAVEHIST=100000
 setopt EXTENDED_HISTORY
 setopt INC_APPEND_HISTORY
-setopt SHARE_HISTORY
+typeset -g _share_history_pref="${ZSH_SHARE_HISTORY:-0}"
+case "${_share_history_pref:l}" in
+    1|on|true|yes) setopt SHARE_HISTORY ;;
+    *) unsetopt SHARE_HISTORY ;;
+esac
+unset _share_history_pref
 setopt HIST_EXPIRE_DUPS_FIRST
 setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_ALL_DUPS
@@ -434,7 +460,12 @@ setopt AUTO_CD              # Type a dir name to cd into it (no 'cd' needed)
 setopt AUTO_PUSHD           # cd pushes onto the dir stack (use 'cd -N' to go back)
 setopt PUSHD_IGNORE_DUPS    # No duplicate dirs on the stack
 setopt PUSHD_SILENT         # Don't print dir stack after pushd/popd
-setopt CORRECT              # Offer correction for mistyped commands (not args)
+typeset -g _correct_pref="${ZSH_ENABLE_CORRECTION:-0}"
+case "${_correct_pref:l}" in
+    1|on|true|yes) setopt CORRECT ;;  # Offer correction for mistyped commands
+    *) unsetopt CORRECT ;;
+esac
+unset _correct_pref
 setopt INTERACTIVE_COMMENTS # Allow # comments in interactive shell
 setopt GLOB_DOTS            # Include dotfiles in glob patterns
 setopt AUTO_LIST            # Show completion options below prompt on ambiguous matches
@@ -510,8 +541,8 @@ zle -N _down_history_or_dirs
 # Configurable: 1/on/true/yes enables; 0/off/false/no disables.
 # Default is enabled.
 : "${ZSH_AUTOLIST_ON_TYPE:=1}"
-# When typing `cd ` with an empty argument, only auto-open if the number of
-# local directories is at or below this threshold (prevents huge dumps).
+# When typing `cd ` + space with an empty argument, auto-open early only when
+# local directory count is small (keeps this useful but non-spammy).
 : "${ZSH_AUTOLIST_CD_EMPTY_MAX:=12}"
 typeset -g _auto_list_last_buffer=""
 typeset -gi _auto_list_in_paste=0
@@ -784,19 +815,29 @@ fi
 # ── Pyenv (if installed) ────────────────────────────────────────────
 
 if [ -d "$HOME/.pyenv" ]; then
-    export PYENV_ROOT="$HOME/.pyenv"
-    export PATH="$PYENV_ROOT/bin:$PATH"
-    _pyenv_bootstrap() {
-        unfunction _pyenv_bootstrap pyenv python pip pip3 2>/dev/null
-        eval "$(command pyenv init -)"
-        if command pyenv commands 2>/dev/null | grep -q virtualenv-init; then
-            eval "$(command pyenv virtualenv-init -)"
-        fi
-    }
-    pyenv()  { _pyenv_bootstrap; command pyenv "$@"; }
-    python() { _pyenv_bootstrap; command python "$@"; }
-    pip()    { _pyenv_bootstrap; command pip "$@"; }
-    pip3()   { _pyenv_bootstrap; command pip3 "$@"; }
+    # Avoid pyenv/conda PATH collisions when conda is active.
+    # Override with ZSH_FORCE_PYENV=1 to keep pyenv wrappers enabled.
+    typeset -gi _conda_active=0
+    [[ -n "${CONDA_PREFIX:-}" ]] && _conda_active=1
+    if [[ "${CONDA_SHLVL:-0}" == <-> ]] && (( CONDA_SHLVL > 0 )); then
+        _conda_active=1
+    fi
+    if (( ! _conda_active )) || [[ "${ZSH_FORCE_PYENV:-0}" == "1" ]]; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        _pyenv_bootstrap() {
+            unfunction _pyenv_bootstrap pyenv python pip pip3 2>/dev/null
+            eval "$(command pyenv init -)"
+            if command pyenv commands 2>/dev/null | grep -q virtualenv-init; then
+                eval "$(command pyenv virtualenv-init -)"
+            fi
+        }
+        pyenv()  { _pyenv_bootstrap; command pyenv "$@"; }
+        python() { _pyenv_bootstrap; command python "$@"; }
+        pip()    { _pyenv_bootstrap; command pip "$@"; }
+        pip3()   { _pyenv_bootstrap; command pip3 "$@"; }
+    fi
+    unset _conda_active
 fi
 
 # ── Powerlevel10k config ─────────────────────────────────────────────
