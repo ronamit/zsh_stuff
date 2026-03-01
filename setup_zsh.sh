@@ -125,6 +125,8 @@ create_zshrc_local_template() {
 # Add exports, tokens, and machine-specific overrides here.
 # Toggle live auto-list while typing (cd/path suggestions):
 # export ZSH_AUTOLIST_ON_TYPE=1   # 1=on (default), 0=off
+# Auto-open `cd ` list only when local dir count is small:
+# export ZSH_AUTOLIST_CD_EMPTY_MAX=12
 
 # export GITHUB_TOKEN="ghp_xxxxx"
 # export OPENAI_API_KEY="sk-xxxxx"
