@@ -173,6 +173,39 @@ _open_default() {
     fi
 }
 
+# ── Utility: OSC 8 hyperlink helpers for terminal output ─────────────
+
+_supports_osc8_links() {
+    [[ -n "${VTE_VERSION:-}" ]] && return 0
+    [[ "${TERM_PROGRAM:-}" == "vscode" ]] && return 0
+    [[ "${TERM_PROGRAM:-}" == "Cursor" ]] && return 0
+    [[ "${TERM:-}" == xterm-kitty ]] && return 0
+    [[ "${TERM:-}" == *wezterm* ]] && return 0
+    [[ "${TERM:-}" == *xterm* ]] && return 0
+    return 1
+}
+
+# Convert plain http/https URLs from stdin into OSC 8 hyperlinks.
+linkify() {
+    perl -pe 's{(https?://[^\s<>"`]+)}{\e]8;;$1\a$1\e]8;;\a}g'
+}
+
+# Run a command and emit hyperlink-annotated output when supported.
+with_links() {
+    (( $# )) || { echo "Usage: with_links <command> [args ...]"; return 2; }
+
+    if _supports_osc8_links || [[ "${FORCE_OSC8_LINKS:-0}" == "1" ]]; then
+        setopt localoptions pipefail
+        "$@" 2>&1 | linkify
+        return ${pipestatus[1]}
+    fi
+
+    "$@"
+}
+
+# Convenience wrapper for GitLab CLI output with clickable URLs.
+alias glab-links='with_links glab'
+
 # ── Aliases: Navigation & Files ──────────────────────────────────────
 
 alias cls='clear'
