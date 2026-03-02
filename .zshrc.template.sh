@@ -870,8 +870,10 @@ if (( _zsh_syntax_highlighting_enabled )); then
 
         ZSH_HIGHLIGHT_HIGHLIGHTERS=(main pattern)
         typeset -gA ZSH_HIGHLIGHT_PATTERNS
-        ZSH_HIGHLIGHT_PATTERNS+=('http://*' 'fg=cyan,underline')
-        ZSH_HIGHLIGHT_PATTERNS+=('https://*' 'fg=cyan,underline')
+        # Match URLs only until whitespace so multiline pasted text doesn't
+        # keep highlighting beyond the actual link.
+        ZSH_HIGHLIGHT_PATTERNS+=('http://[^[:space:]]##' 'fg=cyan,underline')
+        ZSH_HIGHLIGHT_PATTERNS+=('https://[^[:space:]]##' 'fg=cyan,underline')
     fi
 
     # Re-wrap any widgets created or reassigned earlier in this file.
