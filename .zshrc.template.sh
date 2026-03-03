@@ -187,7 +187,9 @@ _supports_osc8_links() {
 
 # Convert plain http/https URLs from stdin into OSC 8 hyperlinks.
 linkify() {
-    perl -pe 's{(https?://[^\s<>"`]+)}{\e]8;;$1\a$1\e]8;;\a}g'
+    # OSC 8 makes the URL clickable; ANSI ensures visible underline/color
+    # even in terminals that don't style hyperlinks by default.
+    perl -pe 's{(https?://[^\s<>"`]+)}{\e]8;;$1\a\e[36;4m$1\e[0m\e]8;;\a}g'
 }
 
 # Run a command and emit hyperlink-annotated output when supported.
@@ -205,6 +207,33 @@ with_links() {
 
 # Convenience wrapper for GitLab CLI output with clickable URLs.
 alias glab-links='with_links glab'
+# Convenience wrapper for Python scripts that print URLs in logs.
+alias python-links='with_links python'
+
+_should_linkify_python_output() {
+    # Keep REPL and non-interactive runs untouched.
+    [[ -o interactive && -t 1 ]] || return 1
+    if ! _supports_osc8_links && [[ "${FORCE_OSC8_LINKS:-0}" != "1" ]]; then
+        return 1
+    fi
+
+    # No args (REPL) or option-first invocations should behave normally.
+    (( $# > 0 )) || return 1
+    [[ "$1" == -* ]] && return 1
+    return 0
+}
+
+# Auto-linkify Python script output in interactive terminals while keeping
+# standard python behavior for REPL/option-based invocations.
+python() {
+    if _should_linkify_python_output "$@"; then
+        setopt localoptions pipefail
+        command python "$@" 2>&1 | linkify
+        return ${pipestatus[1]}
+    fi
+
+    command python "$@"
+}
 
 # ── Aliases: Navigation & Files ──────────────────────────────────────
 
