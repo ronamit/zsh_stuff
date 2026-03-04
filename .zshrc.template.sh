@@ -188,7 +188,12 @@ if (( _lsd_installed )); then
 else
     alias l='ls -lFh'
     alias la='ls -lAFh'
-    alias ll='ls -lAh --group-directories-first --color=auto'
+    # GNU ls: group dirs first + color; macOS/BSD: plain -lAh
+    if ls --group-directories-first -d . &>/dev/null 2>&1; then
+        alias ll='ls -lAh --group-directories-first --color=auto'
+    else
+        alias ll='ls -lAh'
+    fi
 fi
 alias lt='tree -L 2'
 alias ldot='command ls -ld .*'
@@ -211,16 +216,27 @@ alias grep='grep --color=auto'
 
 alias df='df -h'
 alias du='du -h'
-alias free='free -h'
+command -v free &>/dev/null && alias free='free -h'
 alias myip='curl -s ifconfig.me'
-alias localip='hostname -I | awk "{print \$1}"'
+# Local IP: Linux (hostname -I) or macOS (ipconfig getifaddr)
+localip() {
+    if command -v hostname &>/dev/null && hostname -I &>/dev/null; then
+        hostname -I | awk '{print $1}'
+    elif command -v ipconfig &>/dev/null; then
+        ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "No primary IP"
+    else
+        echo "No localip helper"
+    fi
+}
 alias h='history'
 alias path='echo "$PATH" | tr ":" "\n"'
 
-# Safety nets for recursive operations
-alias chown='chown --preserve-root'
-alias chmod='chmod --preserve-root'
-alias chgrp='chgrp --preserve-root'
+# Safety nets for recursive operations (GNU only; macOS BSD chown/chmod lack these)
+if [[ "$(uname -s)" != "Darwin" ]]; then
+    alias chown='chown --preserve-root'
+    alias chmod='chmod --preserve-root'
+    alias chgrp='chgrp --preserve-root'
+fi
 
 # Editor: cursor > code
 if command -v cursor &>/dev/null; then
@@ -373,9 +389,21 @@ ports() {
     if command -v ss &>/dev/null; then
         ss -tulanp
     elif command -v netstat &>/dev/null; then
-        netstat -tulanp
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local netstat_out
+            netstat_out="$(netstat -an -f inet | grep -E 'LISTEN|ESTABLISHED' || true)"
+            if [[ -n "$netstat_out" ]]; then
+                echo "$netstat_out"
+            else
+                echo "No LISTEN/ESTABLISHED IPv4 sockets found."
+            fi
+        else
+            netstat -tulanp
+        fi
+    elif command -v lsof &>/dev/null; then
+        lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null
     else
-        echo "No port tool found (install iproute2 or net-tools)."
+        echo "No port tool found (install ss, netstat, or lsof)."
         return 1
     fi
 }
@@ -391,7 +419,7 @@ mkcd() { mkdir -p "$1" && cd "$1"; }
 tm() { tmux new -A -s "${1:-main}"; }
 
 # Show disk usage of directories (top 10)
-ducks() { du -cks -- * 2>/dev/null | sort -rn | head -11; }
+ducks() { du -sh * 2>/dev/null | sort -hr | head -11; }
 
 # Quick reload
 alias reload='source ~/.zshrc && echo "✓ zsh config reloaded"'

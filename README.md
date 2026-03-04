@@ -1,6 +1,6 @@
 # zsh_stuff
 
-Automation-first zsh environment setup for Ubuntu/Debian, plus utility scripts and guides.
+Automation-first zsh environment setup for **Linux (Ubuntu/Debian)** and **macOS**, plus utility scripts and guides.
 
 ## Quick Start
 
@@ -9,17 +9,21 @@ cd ~/zsh_stuff
 bash setup_zsh.sh
 ```
 
+- **Linux**: needs `apt-get` (Ubuntu/Debian).
+- **macOS**: needs [Homebrew](https://brew.sh); install it first if you don’t have it.
+
 Then: set terminal font to **Hack Nerd Font**, open a new terminal, and optionally run `p10k configure`.
 
-Detailed usage & troubleshooting: [ZSH_SETUP_GUIDE.md](ZSH_SETUP_GUIDE.md)
+Detailed usage & troubleshooting: [ZSH_SETUP_GUIDE.md](ZSH_SETUP_GUIDE.md)  
 Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFERENCE.md](ZSH_SHORTCUTS_REFERENCE.md)
 
 ## What `setup_zsh.sh` Does
 
 - Installs zsh, Oh My Zsh, Powerlevel10k, and plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search`, `fzf-tab`).
-- Installs CLI tools via apt: fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.
-- Installs Hack Nerd Font.
-- Configures tmux defaults, `.zshenv`, and `.bashrc` fallback.
+- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.).
+- **macOS**: installs CLI tools via Homebrew (fzf, fd, bat, ripgrep, tree, tmux, lsd).
+- Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
+- Configures tmux defaults, `.zshenv`, and `.bashrc` fallback (zsh auto-launch when you start bash).
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
 - Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Creates `~/.zshrc.local` for personal tokens/exports (never overwritten).

@@ -37,7 +37,7 @@ bindkey | less
 | `ls` | Uses `lsd` when installed; otherwise system `ls` |
 | `l` | `lsd -l` when available; otherwise `ls -lFh` |
 | `la` | `lsd -la` when available; otherwise `ls -lAFh` |
-| `ll` | `lsd -lah` when available; otherwise `ls -lAh --group-directories-first --color=auto` |
+| `ll` | `lsd -lah` when available; otherwise `ls -lAh` (GNU: + `--group-directories-first --color=auto`) |
 | `lt` | `tree -L 2` |
 | `ldot` | `ls -ld .*` |
 | `cat` | Uses `bat`/`batcat` plain mode when available |

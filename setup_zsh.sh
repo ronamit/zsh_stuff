@@ -1,15 +1,16 @@
 #!/bin/bash
 # ======================================================================
-# ZSH Setup Script (Ubuntu/Debian)
+# ZSH Setup Script (Linux + macOS)
 # ======================================================================
 # Installs and configures zsh with Oh My Zsh, Powerlevel10k, and plugins.
 # Safe to re-run — skips already-installed components.
+# - Linux (Debian/Ubuntu): uses apt.
+# - macOS: uses Homebrew (install from https://brew.sh if missing).
 #
 # Usage:  bash setup_zsh.sh
 # ======================================================================
 
-# Fail on undefined variables and pipe errors, but NOT on simple non-zero
-# returns (set -e is too fragile with the probe-and-skip patterns here).
+# Fail on undefined variables and pipe errors.
 set -uo pipefail
 
 # ── Globals ──────────────────────────────────────────────────────────
@@ -23,9 +24,17 @@ SSH_MARKER_END="# <<< zsh_stuff ssh keepalive <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
 BACKUP_DIR="$HOME/.zsh_backups"
+STEP=0
+
+# OS detection
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    IS_MACOS=1
+else
+    IS_MACOS=0
+fi
+
 APT_PACKAGES_TO_INSTALL=()
 APT_INDEX_REFRESHED=0
-STEP=0
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -95,6 +104,20 @@ add_best_effort_pkg() {
     fi
 }
 
+install_brew_formula_if_missing() {
+    local cmd="$1" formula="$2"
+    if command -v "$cmd" &>/dev/null; then
+        return 0
+    fi
+    echo "  Installing Homebrew formula: $formula"
+    if brew install "$formula"; then
+        return 0
+    else
+        echo "  ✗ Failed to install Homebrew formula: $formula"
+        exit 1
+    fi
+}
+
 clone_if_missing() {
     local label="$1" url="$2" dir="$3" name="$4"
     step "$label"
@@ -116,6 +139,9 @@ has_hack_nerd_font() {
     fi
     compgen -G "$HOME/.local/share/fonts/Hack*Nerd*Font*.ttf" >/dev/null 2>&1 && return 0
     compgen -G "$HOME/.local/share/fonts/Hack*Nerd*Font*.otf" >/dev/null 2>&1 && return 0
+    # macOS Homebrew cask or user fonts
+    compgen -G "$HOME/Library/Fonts/Hack*Nerd*Font*.ttf" >/dev/null 2>&1 && return 0
+    compgen -G "$HOME/Library/Fonts/Hack*Nerd*Font*.otf" >/dev/null 2>&1 && return 0
     return 1
 }
 
@@ -138,22 +164,39 @@ EOF
 # ── Pre-flight ───────────────────────────────────────────────────────
 
 echo "======================================================================"
-echo "ZSH Setup (Ubuntu/Debian)"
-echo "======================================================================"
-
-if ! command -v apt-get &>/dev/null; then
-    echo "Error: apt-get not found. This script requires Ubuntu/Debian."
-    exit 1
+if [ "$IS_MACOS" -eq 1 ]; then
+    echo "ZSH Setup (macOS)"
+else
+    echo "ZSH Setup (Linux)"
 fi
+echo "======================================================================"
 
 if [ ! -f "$ZSHRC_TEMPLATE" ]; then
     echo "Error: Missing .zshrc.template.sh at $ZSHRC_TEMPLATE"
     exit 1
 fi
 
+if [ "$IS_MACOS" -eq 1 ]; then
+    if ! command -v brew &>/dev/null; then
+        echo "Error: Homebrew not found. Install from https://brew.sh then re-run."
+        exit 1
+    fi
+else
+    if ! command -v apt-get &>/dev/null; then
+        echo "Error: apt-get not found. This script supports Ubuntu/Debian or macOS (Homebrew)."
+        exit 1
+    fi
+fi
+
 # ── Bootstrap: zsh, curl, git ────────────────────────────────────────
 
 step "Installing core dependencies (zsh, curl, git)..."
+if [ "$IS_MACOS" -eq 1 ]; then
+    install_brew_formula_if_missing zsh zsh
+    install_brew_formula_if_missing curl curl
+    install_brew_formula_if_missing git git
+    echo "  ✓ Core tools checked (Homebrew)"
+else
 BOOTSTRAP=()
 command -v zsh  &>/dev/null || BOOTSTRAP+=("zsh")
 command -v curl &>/dev/null || BOOTSTRAP+=("curl")
@@ -169,6 +212,7 @@ if [ "${#BOOTSTRAP[@]}" -gt 0 ]; then
     fi
 else
     echo "  ✓ zsh, curl, git already present"
+fi
 fi
 
 # ── Oh My Zsh ────────────────────────────────────────────────────────
@@ -209,10 +253,19 @@ clone_if_missing "fzf-tab" \
     "https://github.com/Aloxaf/fzf-tab.git" \
     "$ZSH_CUSTOM/plugins/fzf-tab" "fzf-tab"
 
-# ── APT packages ─────────────────────────────────────────────────────
+# ── APT packages (Linux) ──────────────────────────────────────────────
 
 step "Collecting required/recommended packages..."
-
+if [ "$IS_MACOS" -eq 1 ]; then
+    install_brew_formula_if_missing fzf fzf
+    install_brew_formula_if_missing tree tree
+    install_brew_formula_if_missing tmux tmux
+    install_brew_formula_if_missing rg ripgrep
+    install_brew_formula_if_missing fd fd
+    install_brew_formula_if_missing bat bat
+    install_brew_formula_if_missing lsd lsd
+    echo "  ✓ Homebrew packages checked"
+else
 # Core tools
 add_pkg_if_missing_cmd wget  wget
 add_pkg_if_missing_cmd unzip unzip
@@ -286,9 +339,11 @@ if [ "${#APT_PACKAGES_TO_INSTALL[@]}" -gt 0 ]; then
 else
     echo "  ✓ All packages already present"
 fi
+fi
 
-# ── Ubuntu tool-name symlinks ────────────────────────────────────────
+# ── Ubuntu tool-name symlinks (Linux only) ────────────────────────────
 
+if [ "$IS_MACOS" -eq 0 ]; then
 mkdir -p "$HOME/.local/bin"
 if command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
     ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
@@ -297,6 +352,7 @@ fi
 if command -v batcat &>/dev/null && ! command -v bat &>/dev/null; then
     ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
     echo "  ✓ Symlinked bat → batcat"
+fi
 fi
 
 # ── Tmux defaults ────────────────────────────────────────────────────
@@ -391,6 +447,28 @@ chmod 600 "$SSH_CONFIG" 2>/dev/null || true
 # ── Hack Nerd Font ───────────────────────────────────────────────────
 
 step "Installing Hack Nerd Font..."
+if [ "$IS_MACOS" -eq 1 ]; then
+    mkdir -p "$HOME/Library/Fonts"
+    if ! has_hack_nerd_font; then
+        echo "  Installing via Homebrew..."
+        if brew install --cask font-hack-nerd-font 2>/dev/null; then
+            echo "  ✓ Hack Nerd Font installed"
+        else
+            echo "  Downloading Hack Nerd Font..."
+            FONT_ZIP="${TMPDIR:-/tmp}/Hack.zip"
+            if curl -sL -o "$FONT_ZIP" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip"; then
+                unzip -q -o "$FONT_ZIP" -d "$HOME/Library/Fonts"
+                rm -f "$FONT_ZIP"
+                echo "  ✓ Hack Nerd Font installed"
+            else
+                rm -f "$FONT_ZIP"
+                echo "  ⚠ Font download failed — install manually: brew install --cask font-hack-nerd-font"
+            fi
+        fi
+    else
+        echo "  ✓ Hack Nerd Font already installed"
+    fi
+else
 mkdir -p "$HOME/.local/share/fonts"
 
 if ! has_hack_nerd_font; then
@@ -408,6 +486,7 @@ if ! has_hack_nerd_font; then
     fi
 else
     echo "  ✓ Hack Nerd Font already installed"
+fi
 fi
 
 # ── Migrate exports → ~/.zshrc.local ────────────────────────────────
@@ -488,9 +567,13 @@ fi
 
 step "Setting default shell to zsh..."
 if command -v chsh &>/dev/null; then
-    CURRENT_SHELL=$(getent passwd "$USER" | cut -d: -f7)
+    if [ "$IS_MACOS" -eq 1 ]; then
+        CURRENT_SHELL=$(dscl . -read "/Users/${USER:-$(whoami)}" UserShell 2>/dev/null | awk '{print $2}')
+    else
+        CURRENT_SHELL=$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)
+    fi
     ZSH_PATH=$(command -v zsh)
-    if [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
+    if [ -z "$CURRENT_SHELL" ] || [ "$CURRENT_SHELL" != "$ZSH_PATH" ]; then
         if chsh -s "$ZSH_PATH" 2>/dev/null; then
             echo "  ✓ Default shell → $ZSH_PATH"
         else
