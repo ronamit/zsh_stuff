@@ -21,7 +21,7 @@ bindkey | less
 |---|---|
 | `Tab` | Completion (`expand-or-complete`; `fzf-tab` adds fuzzy selection UI) |
 | `Shift+Tab` | Reverse completion |
-| `Up` / `Down` | Sticky prefix history search |
+| `Up` / `Down` | Sticky prefix history search (`Down` cycles path completions when current argument is path-like) |
 | `Ctrl+P` / `Ctrl+N` | Sticky prefix history search |
 | `Right Arrow` / `End` | Accept full autosuggestion |
 | `Ctrl+Right` / `Alt+F` | Accept one word from autosuggestion |

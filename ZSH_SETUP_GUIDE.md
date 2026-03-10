@@ -54,7 +54,7 @@ For bare `cd `, auto-open is gated by `ZSH_AUTOLIST_CD_EMPTY_MAX` (default `20`)
 | Key | Action |
 |---|---|
 | `Tab` / `Shift+Tab` | Next/prev completion |
-| `Up` / `Down` | Prefix history search |
+| `Up` / `Down` | Prefix history search (`Down` cycles path completions when current argument is path-like) |
 | `Ctrl+P` / `Ctrl+N` | Prefix history search |
 | `Right Arrow` | Accept full autosuggestion |
 | `Ctrl+Right` | Accept one word of suggestion |

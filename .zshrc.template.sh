@@ -532,12 +532,14 @@ _history_prefix_search_down() {
 zle -N _history_prefix_search_up
 zle -N _history_prefix_search_down
 
-# Smart Down: keep history scrolling when active; otherwise cycle directory
-# completions for cd/pushd/popd or AUTO_CD-style path input.
+# Smart Down: keep history scrolling when active; otherwise cycle path
+# completions for cd/pushd/popd, AUTO_CD-style path input, or path-like args.
 _down_history_or_dirs() {
     local cmd="${BUFFER%%[[:space:]]*}"
     local in_history_scroll=0
     local in_dir_context=0
+    local -a words=()
+    local current_word=""
 
     if [[ $LASTWIDGET == _history_prefix_search_up ||
           $LASTWIDGET == _history_prefix_search_down ||
@@ -552,13 +554,21 @@ _down_history_or_dirs() {
             in_dir_context=1
         elif [[ "$BUFFER" != *[[:space:]]* ]] && [[ "$BUFFER" == [./~]* ]]; then
             in_dir_context=1
+        else
+            words=(${(z)BUFFER})
+            if [[ "$BUFFER" != *[[:space:]] ]] && (( ${#words} )); then
+                current_word="${words[-1]}"
+                if [[ "$current_word" == [./~]* || "$current_word" == */* ]]; then
+                    in_dir_context=1
+                fi
+            fi
         fi
     fi
 
-    if (( in_history_scroll )); then
-        zle _history_prefix_search_down
-    elif (( in_dir_context )); then
+    if (( in_dir_context )); then
         zle menu-complete
+    elif (( in_history_scroll )); then
+        zle _history_prefix_search_down
     else
         zle _history_prefix_search_down
     fi
