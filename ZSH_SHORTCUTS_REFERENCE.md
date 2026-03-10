@@ -9,7 +9,7 @@ Shortcut and helper reference for this setup, based on `.zshrc.template.sh`.
 alias
 
 # List custom functions from this config
-functions | rg '^(ff|ftext|ports|f|mkcd|tm|ducks|vssh|gbr|branch_bye|pr|_venv_auto_activate)\\b'
+functions | rg '^(ff|ftext|ports|f|mkcd|tm|ducks|gbr|branch_bye|pr|_venv_auto_activate)\\b'
 
 # Show active key bindings
 bindkey | less
@@ -50,7 +50,7 @@ bindkey | less
 | `path` | Print one `PATH` entry per line |
 | `myip` | Public IP (`curl ifconfig.me`) |
 | `localip` | First local IP |
-| `vssh HOST [ARGS...]` | VPN-aware SSH: pre-checks `HOST:port`, runs `vpn-connect` if unreachable, then retries once |
+| `ssh HOST [ARGS...]` | Wrapped SSH: on failure in interactive shell, asks to run `vpn-connect` and retries once |
 | `reload` | Reload `~/.zshrc` |
 | `f` | Open current dir in system file manager |
 | `mkcd NAME` | Create dir and enter it |

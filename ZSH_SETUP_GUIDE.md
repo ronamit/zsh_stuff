@@ -104,24 +104,17 @@ echo 'export ZSH_AUTOLIST_CD_EMPTY_MAX=20' >> ~/.zshrc.local
 source ~/.zshrc
 ```
 
-## VPN-Aware SSH Helper
+## VPN-Aware SSH Retry Prompt
 
-For hosts that require VPN routing, use `vssh` instead of `ssh`:
+`ssh` is wrapped in interactive shells:
+- Runs `ssh` normally.
+- If it fails, prompts whether to run `vpn-connect`.
+- On confirmation, runs `vpn-connect` (or `~/vpn/vpn-connect.sh`) and retries once.
 
-```bash
-vssh ai-researcher-dev-rona
-```
-
-Behavior:
-- Checks host reachability on the resolved SSH host/port first.
-- If unreachable, runs `vpn-connect` (or `~/vpn/vpn-connect.sh` if available) and retries once.
-- If still unreachable, exits with a clear error (does not hang indefinitely).
-
-Optional:
+Example:
 
 ```bash
-# Seconds used for each reachability check (default: 3)
-export VSSH_CONNECT_TIMEOUT=5
+ssh ai-researcher-dev-rona
 ```
 
 ## Updating

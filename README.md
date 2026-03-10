@@ -45,9 +45,8 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 
 ## VPN-Aware SSH
 
-- Use `vssh <host> [ssh-args...]` for hosts that may require VPN.
-- `vssh` checks reachability first, runs `vpn-connect` if needed, then retries once.
-- If still unreachable, it exits with a clear error instead of waiting on a long SSH timeout.
+- `ssh` is wrapped in interactive shells.
+- If `ssh` fails, it asks whether to run `vpn-connect`, then retries once on confirmation.
 
 ## tmux Defaults and Shortcuts
 
