@@ -43,6 +43,12 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 - `Up` / `Down` and `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
 - `Ctrl+Space` accepts the autosuggestion (`^@` fallback is also bound for tmux terminals).
 
+## VPN-Aware SSH
+
+- Use `vssh <host> [ssh-args...]` for hosts that may require VPN.
+- `vssh` checks reachability first, runs `vpn-connect` if needed, then retries once.
+- If still unreachable, it exits with a clear error instead of waiting on a long SSH timeout.
+
 ## tmux Defaults and Shortcuts
 
 - `tm` opens or attaches a session: `tm [session-name]` (default: `main`).

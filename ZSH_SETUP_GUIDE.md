@@ -104,6 +104,26 @@ echo 'export ZSH_AUTOLIST_CD_EMPTY_MAX=20' >> ~/.zshrc.local
 source ~/.zshrc
 ```
 
+## VPN-Aware SSH Helper
+
+For hosts that require VPN routing, use `vssh` instead of `ssh`:
+
+```bash
+vssh ai-researcher-dev-rona
+```
+
+Behavior:
+- Checks host reachability on the resolved SSH host/port first.
+- If unreachable, runs `vpn-connect` (or `~/vpn/vpn-connect.sh` if available) and retries once.
+- If still unreachable, exits with a clear error (does not hang indefinitely).
+
+Optional:
+
+```bash
+# Seconds used for each reachability check (default: 3)
+export VSSH_CONNECT_TIMEOUT=5
+```
+
 ## Updating
 
 ```bash

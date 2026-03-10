@@ -250,6 +250,58 @@ fi
 [[ -x "$HOME/vpn/vpn-disconnect.sh" ]] && alias vpn-disconnect='bash ~/vpn/vpn-disconnect.sh'
 [[ -x "$HOME/vpn/vpn-status.sh" ]]     && alias vpn-status='bash ~/vpn/vpn-status.sh'
 
+# VPN-aware SSH helper.
+# Usage: vssh <host> [ssh-args...]
+# Behavior:
+#   - Checks SSH reachability first.
+#   - If unreachable, runs vpn-connect (if available) and retries once.
+#   - If still unreachable, exits with a clear error instead of hanging.
+vssh() {
+    if (( $# < 1 )); then
+        echo "Usage: vssh <host> [ssh-args...]"
+        return 2
+    fi
+
+    if ! command -v nc &>/dev/null; then
+        echo "vssh: 'nc' is required for pre-checks but was not found."
+        return 1
+    fi
+
+    local target="$1"
+    shift
+
+    local resolved_host resolved_port
+    resolved_host=$(ssh -G "$target" 2>/dev/null | awk '$1 == "hostname" { print $2; exit }')
+    resolved_port=$(ssh -G "$target" 2>/dev/null | awk '$1 == "port" { print $2; exit }')
+    [[ -z "$resolved_host" ]] && resolved_host="$target"
+    [[ -z "$resolved_port" ]] && resolved_port="22"
+
+    local connect_timeout="${VSSH_CONNECT_TIMEOUT:-3}"
+
+    if nc -z -w "$connect_timeout" "$resolved_host" "$resolved_port" &>/dev/null; then
+        ssh "$target" "$@"
+        return $?
+    fi
+
+    echo "vssh: ${resolved_host}:${resolved_port} is unreachable. Trying vpn-connect..."
+
+    if (( $+aliases[vpn-connect] )); then
+        vpn-connect || { echo "vssh: vpn-connect failed."; return 1; }
+    elif [[ -x "$HOME/vpn/vpn-connect.sh" ]]; then
+        bash "$HOME/vpn/vpn-connect.sh" || { echo "vssh: vpn-connect failed."; return 1; }
+    else
+        echo "vssh: vpn-connect is not available. Connect VPN manually and retry."
+        return 1
+    fi
+
+    if ! nc -z -w "$connect_timeout" "$resolved_host" "$resolved_port" &>/dev/null; then
+        echo "vssh: ${resolved_host}:${resolved_port} is still unreachable after vpn-connect."
+        return 1
+    fi
+
+    ssh "$target" "$@"
+}
+
 # ── Aliases: Git (extras beyond Oh My Zsh git plugin) ────────────────
 
 alias glog='git log --oneline --decorate --graph'
