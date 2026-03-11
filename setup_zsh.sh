@@ -373,6 +373,7 @@ set -g status-position top
 set -as terminal-features ',*:RGB'
 set -as terminal-features ',*:extkeys'
 set -as terminal-features ',*:hyperlinks'
+set -ga terminal-overrides ',*:Tc'
 bind r source-file ~/.tmux.conf
 
 # Vim copy-mode
