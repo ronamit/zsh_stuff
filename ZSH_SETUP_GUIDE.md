@@ -1,6 +1,6 @@
-# ZSH Setup Guide (Ubuntu/Debian)
+# ZSH Setup Guide (Linux + macOS)
 
-Automated zsh environment setup. Run the script; don't install components manually unless debugging.
+Automated zsh environment setup for Linux and macOS. Run the script; don't install components manually unless debugging.
 
 ## Quick Start
 
@@ -8,6 +8,9 @@ Automated zsh environment setup. Run the script; don't install components manual
 cd ~/zsh_stuff
 bash setup_zsh.sh
 ```
+
+- **Linux**: requires `apt-get` (Ubuntu/Debian-family distros).
+- **macOS**: requires [Homebrew](https://brew.sh).
 
 After the script finishes:
 
@@ -33,8 +36,9 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 - Installs zsh, Oh My Zsh, Powerlevel10k.
 - Installs plugins: `zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `fzf-tab`.
-- Installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.). Optional packages are best-effort.
-- Installs Hack Nerd Font to `~/.local/share/fonts`.
+- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.). Optional packages are best-effort.
+- **macOS**: installs CLI tools via Homebrew (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.).
+- Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
 - Adds a managed tmux config block to `~/.tmux.conf`.
 - Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Ensures `~/.zshenv` has `skip_global_compinit=1` (Ubuntu compatibility).
@@ -140,7 +144,11 @@ bash setup_zsh.sh
 Close all terminals and reopen. Verify with:
 
 ```bash
+# Linux
 getent passwd "$USER" | cut -d: -f7
+
+# macOS
+dscl . -read "/Users/$USER" UserShell | awk '{print $2}'
 ```
 
 If needed: `chsh -s "$(command -v zsh)"`. Note: SSH sessions may need a logout/login cycle.
