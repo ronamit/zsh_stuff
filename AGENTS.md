@@ -1,4 +1,4 @@
-# Codex Agent Instructions
+# Agent Instructions
 
 ## Confirm Before Implementing
 
