@@ -126,12 +126,11 @@ yt-dlp -x --audio-format mp3 --audio-quality 0 \
 | `--write-auto-subs` | Download auto-generated subtitles |
 | `--no-playlist` | Download only the video, not the playlist |
 | `--yes-playlist` | Download the whole playlist |
-| `--download-archive done.txt` | Skip already downloaded videos |
+| `--download-archive file.txt` | Track downloaded videos and skip on re-run |
 | `--limit-rate 5M` | Limit download speed to 5MB/s |
 | `--sleep-interval 5` | Wait 5 seconds between downloads |
 | `--cookies-from-browser firefox` | Use cookies from browser (for private videos) |
 | `--extractor-args "youtube:player_client=android"` | Use Android client (more reliable, lower quality) |
-| `--download-archive file.txt` | Track downloaded videos, skip on re-run |
 
 ## Output Template Variables
 

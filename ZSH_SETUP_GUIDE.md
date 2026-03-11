@@ -38,7 +38,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 ## Completions & Autosuggestions
 
-**Ghost suggestions** (inline gray text): From `zsh-autosuggestions`, shown live while you type (history first, then completion fallback). Accept with `Right Arrow`, accept one word with `Ctrl+Right`.
+**Ghost suggestions** (inline gray text): From `zsh-autosuggestions`, shown live while you type (history first, then completion fallback). Accept with `Right Arrow`, accept one word with `Ctrl+Right` (or `Alt+F`).
 
 **Interactive completion menu** (multiple candidates with fuzzy selection): From `fzf-tab` on `Tab`, backed by zsh completion.
 
@@ -57,9 +57,9 @@ For bare `cd `, auto-open is gated by `ZSH_AUTOLIST_CD_EMPTY_MAX` (default `20`)
 | `Up` / `Down` | Prefix history search (`Down` cycles path completions when current argument is path-like) |
 | `Ctrl+P` / `Ctrl+N` | Prefix history search |
 | `Right Arrow` | Accept full autosuggestion |
-| `Ctrl+Right` | Accept one word of suggestion |
+| `Ctrl+Right` / `Alt+F` | Accept one word of suggestion |
 | `End` | Accept full autosuggestion |
-| `Ctrl+Space` | Accept autosuggestion |
+| `Ctrl+Space` | Accept autosuggestion (`Ctrl+@` fallback is also bound for tmux terminals) |
 | `Ctrl+Z` | Undo last edit |
 
 For all daily shortcuts (especially git workflows), see:
@@ -162,10 +162,29 @@ Check what sequence your terminal sends with `cat -v`, then bind that sequence i
 
 ## Roll Back
 
+### Restore your previous `~/.zshrc` backup
+
 ```bash
 ls -1t ~/.zsh_backups/.zshrc.backup.*
 cp ~/.zsh_backups/.zshrc.backup.<timestamp> ~/.zshrc
-source ~/.zshrc
+exec zsh
+```
+
+### Switch default shell back to bash
+
+```bash
+chsh -s "$(command -v bash)"
+exec bash
+```
+
+Then edit `~/.bashrc` and remove this block (added by `setup_zsh.sh`) if you do not want bash to auto-launch zsh:
+
+```bash
+# Auto-launch zsh if available (added by zsh_stuff setup)
+if [ -t 1 ] && [ -z "$ZSH_VERSION" ] && command -v zsh >/dev/null 2>&1; then
+    export SHELL=$(command -v zsh)
+    exec zsh
+fi
 ```
 
 ## References

@@ -34,14 +34,41 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 1. Set terminal font to **Hack Nerd Font**.
 2. Add personal exports/tokens to `~/.zshrc.local`.
 
+## Revert / Go Back
+
+### Restore your previous `~/.zshrc` backup
+
+```bash
+ls -1t ~/.zsh_backups/.zshrc.backup.*
+cp ~/.zsh_backups/.zshrc.backup.<timestamp> ~/.zshrc
+exec zsh
+```
+
+### Switch default shell back to bash
+
+```bash
+chsh -s "$(command -v bash)"
+exec bash
+```
+
+Then edit `~/.bashrc` and remove this block (added by `setup_zsh.sh`) if you do not want bash to auto-launch zsh:
+
+```bash
+# Auto-launch zsh if available (added by zsh_stuff setup)
+if [ -t 1 ] && [ -z "$ZSH_VERSION" ] && command -v zsh >/dev/null 2>&1; then
+    export SHELL=$(command -v zsh)
+    exec zsh
+fi
+```
+
 ## Completion, Autosuggest, and Key Behavior
 
-- `zsh-autosuggestions` shows inline ghost text from history (completion strategy disabled for responsiveness).
+- `zsh-autosuggestions` shows inline ghost text from history first, with completion as fallback.
 - `Right Arrow` or `End` accepts the full suggestion.
 - `Ctrl+Right` (or `Alt+F`) accepts one word from the suggestion.
 - `fzf-tab` provides interactive fuzzy completion on `Tab`.
 - `Up` / `Down` and `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
-- `Ctrl+Space` accepts the autosuggestion (`^@` fallback is also bound for tmux terminals).
+- `Ctrl+Space` accepts the autosuggestion (`Ctrl+@` fallback is also bound for tmux terminals).
 
 ## VPN-Aware SSH
 

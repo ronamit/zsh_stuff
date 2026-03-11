@@ -369,7 +369,7 @@ set -g set-clipboard on
 set -g xterm-keys on
 set -g status-position top
 set -as terminal-features ',*:extkeys'
-bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
+bind r source-file ~/.tmux.conf
 
 # Vim copy-mode
 setw -g mode-keys vi
