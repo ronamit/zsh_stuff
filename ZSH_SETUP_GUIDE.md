@@ -14,7 +14,15 @@ After the script finishes:
 1. Review `~/.zshrc.local` and add any missing tokens/exports.
 2. Open a new terminal (or `exec zsh`).
 3. Optional: `p10k configure` to customize your prompt.
-4. Optional (for icon glyphs): set your terminal font to **Hack Nerd Font**: https://www.nerdfonts.com/font-downloads
+4. Optional (for icon glyphs): `setup_zsh.sh` already installs the font files; set your terminal font to [Hack Nerd Font](https://www.nerdfonts.com/font-downloads) so icons render correctly.
+
+Major setup actions performed by the installer:
+- Installs zsh, Oh My Zsh, Powerlevel10k, and key plugins (`zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `fzf-tab`).
+- Installs common CLI tools (`fzf`, `fd`, `bat`, `ripgrep`, `tree`, `tmux`, `lsd`, etc.).
+- Installs Hack Nerd Font files.
+- Applies managed tmux defaults in `~/.tmux.conf`.
+- Backs up existing `~/.zshrc`, installs project config, and preserves/creates `~/.zshrc.local`.
+- Sets zsh as default shell (with `.bashrc` fallback) and adds global git aliases (`git sw`, `git swc`).
 
 Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 [ZSH_SHORTCUTS_REFERENCE.md](ZSH_SHORTCUTS_REFERENCE.md)
