@@ -23,10 +23,10 @@ ip route | grep default
 
 You'll see something like:
 ```
-default via 10.226.199.95 dev wlan0
+default via 192.168.43.1 dev wlan0
 ```
 
-The important number is **10.226.199.95** - this is your **gateway IP** (your hotspot's address).
+The important number is **192.168.43.1** - this is your **gateway IP** (your hotspot's address).
 
 ### 1.3 Understand the IP Range
 Based on the gateway IP, here's what you can use:
@@ -36,7 +36,7 @@ Based on the gateway IP, here's what you can use:
 | 192.168.43.1   | 192.168.43.2 to 192.168.43.254 | 192.168.43.50    |
 | 192.168.6.1    | 192.168.6.2 to 192.168.6.254   | 192.168.6.50     |
 | 172.20.10.1    | 172.20.10.2 to 172.20.10.254   | 172.20.10.50     |
-| 10.226.199.95  | 10.226.199.2 to 10.226.199.254 | 10.226.199.50    |
+| 10.42.0.1      | 10.42.0.2 to 10.42.0.254       | 10.42.0.50       |
 
 **Rule**: Keep the first three numbers the same as the gateway, only change the last number (between 2-254). Avoid using the gateway IP and avoid your current DHCP IP (from `src` in `ip route`).
 
@@ -60,9 +60,9 @@ Based on the gateway IP, here's what you can use:
 
    | Field      | What to Enter                          | Example          |
    |-----------|----------------------------------------|------------------|
-   | Address   | Your chosen static IP (see table above) | 10.226.199.50    |
+   | Address   | Your chosen static IP (see table above) | 192.168.43.50    |
    | Netmask   | Type `255.255.255.0` OR just `24`      | 24               |
-   | Gateway   | The gateway IP you found in Step 1.2   | 10.226.199.95    |
+   | Gateway   | The gateway IP you found in Step 1.2   | 192.168.43.1     |
 
 4. In the **DNS** field, enter: `8.8.8.8, 1.1.1.1`
 
@@ -82,7 +82,7 @@ IFACE=$(ip route | awk '/default/ {print $5; exit}')
 ip addr show "$IFACE" | grep inet
 ```
 
-You should see your static IP (e.g., `10.226.199.50`).
+You should see your static IP (e.g., `192.168.43.50`).
 
 Test internet connection:
 ```bash
@@ -122,9 +122,9 @@ Some Android phones (especially Android 11+) change the subnet randomly (e.g., f
    ip route | grep default
    ```
 3. Update the **Address** and **Gateway** to match the new subnet
-4. Example: If gateway changed to `10.226.199.95`, set:
-   - Address: `10.226.199.50`
-   - Gateway: `10.226.199.95`
+4. Example: If gateway changed to `192.168.43.1`, set:
+   - Address: `192.168.43.50`
+   - Gateway: `192.168.43.1`
 
 ### Note: Samsung Galaxy S24 Ultra (Android 16)
 On Samsung One UI, the hotspot subnet can change after toggling the hotspot, rebooting, or applying updates. If your static IP stops working, re-check the gateway with:
@@ -154,8 +154,8 @@ nmcli con show
 
 # 2. Set static IP (replace "YourHotspotName" with actual name)
 nmcli con mod "YourHotspotName" ipv4.method manual \
-  ipv4.addresses 10.226.199.50/24 \
-  ipv4.gateway 10.226.199.95 \
+  ipv4.addresses 192.168.43.50/24 \
+  ipv4.gateway 192.168.43.1 \
   ipv4.dns "8.8.8.8,1.1.1.1"
 
 # 3. Reconnect
@@ -181,16 +181,16 @@ You typically need a static IP if you're:
 ```
 Step 1: Find gateway
   Command: ip route | grep default
-  Result: 10.226.199.95 (example)
+  Result: 192.168.43.1 (example)
 
 Step 2: Choose static IP
-  Use: 10.226.199.50 (example - same first 3 numbers)
+  Use: 192.168.43.50 (example - same first 3 numbers)
 
 Step 3: Set in GUI
   Settings → Wi-Fi → Gear Icon → IPv4 → Manual
-  Address: 10.226.199.50
+  Address: 192.168.43.50
   Netmask: 24
-  Gateway: 10.226.199.95
+  Gateway: 192.168.43.1
   DNS: 8.8.8.8, 1.1.1.1
 
 Step 4: Apply and reconnect

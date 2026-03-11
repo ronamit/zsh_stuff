@@ -80,12 +80,12 @@ ip route get "$TARGET_IP" 2>&1
 echo ""
 
 echo "### 5. VPN Routes ###"
-echo "Routes via VPN gateway (looking for 10.10/10.156 networks):"
-VPN_ROUTES=$(ip route | grep -E "(10\.10|10\.156)" | head -5)
+echo "Routes via VPN gateway (looking for private network routes):"
+VPN_ROUTES=$(ip route | grep -E "^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)" | head -5)
 if [ -n "$VPN_ROUTES" ]; then
     echo "$VPN_ROUTES"
 else
-    echo -e "${YELLOW}⚠️  No routes found for 10.10.x.x or 10.156.x.x networks${NC}"
+    echo -e "${YELLOW}⚠️  No private-network routes found through VPN${NC}"
     echo "VPN might not be routing traffic correctly."
 fi
 echo ""
@@ -138,22 +138,16 @@ fi
 echo ""
 
 echo "### 10. Check Desktop IP Range ###"
-echo "Checking if desktop IP is in VPN-routed range..."
-if [[ $TARGET_IP =~ ^10\.10\. ]]; then
-    echo -e "${GREEN}✅ Desktop IP ($TARGET_IP) is in VLAN 10 (10.10.x.x) - CORRECT${NC}"
-elif [[ $TARGET_IP =~ ^10\.156\. ]]; then
-    echo -e "${GREEN}✅ Desktop IP ($TARGET_IP) is in routed range (10.156.x.x) - CORRECT${NC}"
-elif [[ $TARGET_IP =~ ^10\.1\. ]]; then
-    echo -e "${RED}❌ Desktop IP ($TARGET_IP) is in VLAN 1 (10.1.x.x) - WRONG VLAN!${NC}"
-    echo "   VPN does not route to this network."
-    echo "   Contact IT to move desktop to VLAN 10 (10.10.x.x)"
-elif [[ $TARGET_IP =~ ^172\.16\. ]] || [[ $TARGET_IP =~ ^172\.(1[7-9]|2[0-9]|3[0-1])\. ]]; then
-    echo -e "${RED}❌ Desktop IP ($TARGET_IP) is in WiFi range (172.16-31.x.x) - WRONG NETWORK!${NC}"
-    echo "   WiFi networks are usually isolated from VPN."
-    echo "   Connect desktop to Ethernet cable."
+echo "Checking whether desktop IP is private or public..."
+if [[ $TARGET_IP =~ ^10\. ]] || [[ $TARGET_IP =~ ^172\.(1[6-9]|2[0-9]|3[01])\. ]] || [[ $TARGET_IP =~ ^192\.168\. ]]; then
+    echo -e "${GREEN}✅ Desktop IP ($TARGET_IP) is in a private range${NC}"
+    echo "   This is typical for home or corporate internal networks."
+elif [[ $TARGET_IP =~ ^169\.254\. ]]; then
+    echo -e "${RED}❌ Desktop IP ($TARGET_IP) is link-local (169.254.x.x)${NC}"
+    echo "   This usually means DHCP failed on the desktop."
 else
-    echo -e "${YELLOW}⚠️  Desktop IP ($TARGET_IP) is in unexpected range${NC}"
-    echo "   VPN routes to: 10.10.x.x and 10.156.x.x"
+    echo -e "${YELLOW}⚠️  Desktop IP ($TARGET_IP) appears to be public/unexpected${NC}"
+    echo "   Verify this is the intended SSH target for your VPN/network setup."
 fi
 echo ""
 
@@ -193,7 +187,7 @@ if ip addr show tun0 &>/dev/null; then
         echo "   VPN is connected but server is unreachable."
         echo ""
         echo "   Possible causes:"
-        echo "   1. Desktop is on wrong VLAN (check if IP is 10.1.x.x instead of 10.10.x.x)"
+        echo "   1. Desktop is on a different network segment than VPN routes"
         echo "   2. Desktop is on WiFi instead of Ethernet"
         echo "   3. Firewall blocking traffic"
         echo "   4. Desktop is powered off or not on network"
@@ -201,9 +195,9 @@ if ip addr show tun0 &>/dev/null; then
         echo "   Next steps:"
         echo "   1. Verify desktop IP on desktop: hostname -I"
         if [ -f "$IT_SUPPORT_MSG_FILE" ]; then
-            echo "   2. If wrong VLAN, contact IT (template: $IT_SUPPORT_MSG_FILE)"
+            echo "   2. If network mismatch is suspected, contact IT/network support (template: $IT_SUPPORT_MSG_FILE)"
         else
-            echo "   2. If wrong VLAN, contact IT"
+            echo "   2. If network mismatch is suspected, contact IT/network support"
         fi
         echo "   3. Verify desktop is connected to Ethernet"
     elif ! timeout 5 nc -zv "$TARGET_IP" 22 &>/dev/null; then

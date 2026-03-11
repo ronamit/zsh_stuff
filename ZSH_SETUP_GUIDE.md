@@ -114,7 +114,7 @@ source ~/.zshrc
 Example:
 
 ```bash
-ssh ai-researcher-dev-rona
+ssh my-remote-host
 ```
 
 ## Updating
