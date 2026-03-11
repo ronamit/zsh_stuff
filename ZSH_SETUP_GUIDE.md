@@ -24,7 +24,7 @@ Major setup actions performed by the installer:
 - Installs common CLI tools (`fzf`, `fd`, `bat`, `ripgrep`, `tree`, `tmux`, `lsd`, etc.).
 - Installs Hack Nerd Font files.
 - Applies managed tmux defaults in `~/.tmux.conf`.
-- Backs up existing `~/.zshrc`, installs project config, and preserves/creates `~/.zshrc.local`.
+- Backs up and replaces your existing `~/.zshrc` with the project config, and preserves/creates `~/.zshrc.local`.
 - Sets zsh as default shell (with `.bashrc` fallback) and adds global git aliases (`git sw`, `git swc`).
 
 Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
@@ -40,7 +40,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 - **macOS**: installs CLI tools via Homebrew (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.).
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
 - Adds a managed tmux config block to `~/.tmux.conf`.
-- Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
+- Backs up your existing `~/.zshrc` to `~/.zsh_backups/` and replaces it from `.zshrc.template.sh`.
 - Ensures `~/.zshenv` has `skip_global_compinit=1` (Ubuntu compatibility).
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
 - Creates/preserves `~/.zshrc.local` for personal settings.
