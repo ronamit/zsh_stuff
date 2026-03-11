@@ -362,13 +362,17 @@ TMUX_BLOCK=$(cat << 'EOF'
 # >>> zsh_stuff tmux defaults >>>
 set -g mouse on
 set -g history-limit 100000
+set -g default-terminal "tmux-256color"
 set -g base-index 1
 setw -g pane-base-index 1
 set -g renumber-windows on
 set -g set-clipboard on
+set -g allow-passthrough on
 set -g xterm-keys on
 set -g status-position top
+set -as terminal-features ',*:RGB'
 set -as terminal-features ',*:extkeys'
+set -as terminal-features ',*:hyperlinks'
 bind r source-file ~/.tmux.conf
 
 # Vim copy-mode

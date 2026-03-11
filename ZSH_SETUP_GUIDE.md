@@ -90,7 +90,7 @@ For all daily shortcuts (especially git workflows), see:
 | `y` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
 | `Enter` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
 
-Additional defaults: mouse mode on, history increased, window/pane numbering starts at `1`, status bar at top.
+Additional defaults: mouse mode on, history increased, window/pane numbering starts at `1`, status bar at top, truecolor enabled (`RGB`), OSC 8 hyperlinks enabled, and passthrough allowed for compatible terminals/apps.
 
 ## Where to Customize
 

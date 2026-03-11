@@ -81,6 +81,7 @@ fi
 - Prefix stays tmux default: `Ctrl+b`.
 - `Prefix + r` reloads `~/.tmux.conf`.
 - Mouse mode is enabled (pane selection, resize, scroll).
+- Truecolor and hyperlink support are enabled for compatible terminals.
 - Copy mode is Vim-style (`Prefix + [` to enter copy mode).
 - In copy mode, `y` and `Enter` copy to system clipboard via `wl-copy` (Wayland) or `xclip` (X11) when available.
 
