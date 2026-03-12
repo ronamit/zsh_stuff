@@ -367,7 +367,7 @@ set -g base-index 1
 setw -g pane-base-index 1
 set -g renumber-windows on
 set -g set-clipboard on
-set -g allow-passthrough on
+set -gq allow-passthrough on
 set -g xterm-keys on
 set -g status-position top
 set -as terminal-features ',*:RGB'

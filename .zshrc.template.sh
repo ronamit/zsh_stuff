@@ -452,7 +452,19 @@ mkcd() { mkdir -p "$1" && cd "$1"; }
 
 # Create or attach to a tmux session
 # Usage: tm [session-name]  (default: "main")
-tm() { tmux new -A -s "${1:-main}"; }
+tm() {
+    local session="${1:-main}"
+
+    if [[ -n "$TMUX" ]]; then
+        if tmux has-session -t "$session" 2>/dev/null; then
+            tmux switch-client -t "$session"
+        else
+            tmux new-session -d -s "$session" && tmux switch-client -t "$session"
+        fi
+    else
+        tmux new-session -A -s "$session"
+    fi
+}
 
 # Show disk usage of directories (top 10)
 ducks() { du -sh * 2>/dev/null | sort -hr | head -11; }
