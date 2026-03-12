@@ -383,15 +383,20 @@ setw -g mode-keys vi
 # Safe default when no external clipboard helper exists.
 bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
 bind-key -T copy-mode-vi Enter send-keys -X copy-selection-and-cancel
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
 
 if-shell 'command -v wl-copy >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel wl-copy'
 if-shell 'command -v wl-copy >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell 'command -v wl-copy >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel wl-copy'
 if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 # <<< zsh_stuff tmux defaults <<<
 EOF
 )

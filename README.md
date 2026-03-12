@@ -83,6 +83,7 @@ fi
 - Mouse mode is enabled (pane selection, resize, scroll).
 - Truecolor and hyperlink support are enabled for compatible terminals (`RGB` + `Tc` compatibility + OSC 8 hyperlinks).
 - Copy mode is Vim-style (`Prefix + [` to enter copy mode).
+- Drag and release with mouse in a pane to select and copy without using `Shift`.
 - In copy mode, `y` and `Enter` copy to system clipboard via `wl-copy` (Wayland) or `xclip` (X11) when available.
 
 ## Files

@@ -87,6 +87,7 @@ For all daily shortcuts (especially git workflows), see:
 | `Ctrl+b` | tmux prefix key (default, unchanged) |
 | `Prefix + r` | Reload `~/.tmux.conf` |
 | `Prefix + [` | Enter copy mode (Vim keys enabled) |
+| Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
 | `Enter` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
 
