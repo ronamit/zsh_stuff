@@ -641,6 +641,24 @@ _tab_complete_and_autolist() {
 }
 zle -N _tab_complete_and_autolist
 
+_tab_accept_or_complete() {
+    # Preserve Tab-to-accept when an autosuggestion is visible; otherwise run
+    # normal completion flow.
+    local _before_buffer="$BUFFER"
+    local -i _before_cursor=$CURSOR
+
+    if (( $+widgets[autosuggest-accept] )); then
+        zle autosuggest-accept
+    fi
+
+    if [[ "$BUFFER" != "$_before_buffer" || $CURSOR -ne $_before_cursor ]]; then
+        return 0
+    fi
+
+    zle _tab_complete_and_autolist
+}
+zle -N _tab_accept_or_complete
+
 # Auto-show completion list while typing (for manageable candidate sets).
 # Configurable: 1/on/true/yes enables; 0/off/false/no disables.
 # Default is enabled for immediate `cd`/path candidate previews while typing.
@@ -880,7 +898,7 @@ if [[ -o interactive ]]; then
     bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
     bindkey '^N'   _down_history_or_dirs
-    bindkey '^I' _tab_complete_and_autolist
+    bindkey '^I' _tab_accept_or_complete
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
         bindkey '^ '   autosuggest-accept      # Ctrl+Space
