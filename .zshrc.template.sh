@@ -15,6 +15,12 @@ if [[ -o interactive && -t 1 && "$TERM" == "dumb" ]]; then
     export TERM=xterm-256color
 fi
 
+# Disable mouse reporting so scroll in SSH (and plain shells) doesn't dump raw escape codes.
+# Apps like vim/less will re-enable it when they start.
+if [[ -o interactive && -t 1 ]]; then
+    printf '\e[?1000l\e[?1002l\e[?1006l'
+fi
+
 HYPHEN_INSENSITIVE="true"
 zstyle ':omz:update' mode auto
 zstyle ':omz:update' frequency 13
