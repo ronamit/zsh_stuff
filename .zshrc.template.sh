@@ -629,6 +629,18 @@ _down_history_or_dirs() {
 }
 zle -N _down_history_or_dirs
 
+_tab_complete_and_autolist() {
+    # Complete current token, then refresh candidate list for the new context
+    # (e.g., after completing "dir/", immediately show its subdirectories).
+    if (( $+widgets[expand-or-complete] )); then
+        zle expand-or-complete
+    else
+        zle .expand-or-complete
+    fi
+    zle _maybe_auto_list_choices
+}
+zle -N _tab_complete_and_autolist
+
 # Auto-show completion list while typing (for manageable candidate sets).
 # Configurable: 1/on/true/yes enables; 0/off/false/no disables.
 # Default is enabled for immediate `cd`/path candidate previews while typing.
@@ -868,11 +880,7 @@ if [[ -o interactive ]]; then
     bindkey '^[OB' _down_history_or_dirs
     bindkey '^P'   _history_prefix_search_up
     bindkey '^N'   _down_history_or_dirs
-    if (( $+widgets[autosuggest-accept] )); then
-        bindkey '^I' autosuggest-accept
-    else
-        bindkey '^I' expand-or-complete
-    fi
+    bindkey '^I' _tab_complete_and_autolist
     bindkey '^[[Z' reverse-menu-complete      # Shift+Tab
     if (( $+widgets[autosuggest-accept] )); then
         bindkey '^ '   autosuggest-accept      # Ctrl+Space
