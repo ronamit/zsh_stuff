@@ -18,7 +18,8 @@
       "Bash(bash setup_zsh.sh)",
       "Bash(tmux source-file:*)",
       "Bash(echo \"exit: $?\")",
-      "Read(//usr/share/zsh/**)"
+      "Read(//usr/share/zsh/**)",
+      "Bash($HOME/.local/bin/tmux-status)"
     ]
   }
 }
