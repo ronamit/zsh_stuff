@@ -25,7 +25,7 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
 - Configures tmux defaults, `.zshenv`, and `.bashrc` fallback (zsh auto-launch when you start bash).
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
-- Backs up existing `~/.zshrc` to `~/.config/zsh/backups/` (or `$XDG_CONFIG_HOME/zsh/backups/`) and installs from `.zshrc.template.sh`.
+- Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Creates `~/.zshrc.local` for personal tokens/exports (never overwritten).
 - Safe to re-run.
 
@@ -39,8 +39,8 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 ### Restore your previous `~/.zshrc` backup
 
 ```bash
-ls -1t ~/.config/zsh/backups/.zshrc.backup.*
-cp ~/.config/zsh/backups/.zshrc.backup.<timestamp> ~/.zshrc
+ls -1t ~/.zsh_backups/.zshrc.backup.*
+cp ~/.zsh_backups/.zshrc.backup.<timestamp> ~/.zshrc
 exec zsh
 ```
 
