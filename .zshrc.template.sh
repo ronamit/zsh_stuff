@@ -691,12 +691,12 @@ _tab_accept_or_complete() {
 
     if [[ "$BUFFER" != "$_before_buffer" || $CURSOR -ne $_before_cursor ]]; then
         # Autosuggestion was accepted — append / if last word is a directory.
-        local -a _words=(${(z)BUFFER})
-        if (( ${#_words} )); then
-            local _last="${_words[-1]}"
+        # Extract the trailing path token (everything after the last unquoted space).
+        local _tail="${BUFFER##*[[:space:]]}"
+        if [[ -n "$_tail" && "$BUFFER" != */ ]]; then
             # Expand ~ to $HOME for the directory test
-            local _expanded="${_last/#\~/$HOME}"
-            if [[ -d "$_expanded" && "$BUFFER" != */ ]]; then
+            local _expanded="${_tail/#\~/$HOME}"
+            if [[ -d "$_expanded" ]]; then
                 BUFFER="${BUFFER}/"
                 CURSOR=${#BUFFER}
             fi

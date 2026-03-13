@@ -413,14 +413,14 @@ bind-key u run-shell "tmux capture-pane -J -p | sed 's/[[:space:]]*$//' | grep -
 # Status bar
 set -g status-style 'bg=colour235,fg=colour7'
 set -g status-interval 5
-set -g status-left '#[fg=colour4,bold] #S #[fg=colour8,nobold] │ #[fg=colour7]#h '
+set -g status-left '#[fg=colour4,bold] #S #[fg=colour240,nobold] │ #[fg=colour7]#h '
 set -g status-left-length 40
-set -g status-right '#[fg=colour2]#($HOME/.local/bin/tmux-status) #[fg=colour8] │ #[fg=colour6]%H:%M '
+set -g status-right '#[fg=colour2]#($HOME/.local/bin/tmux-status) #[fg=colour240] │ #[fg=colour6]%H:%M '
 set -g status-right-length 80
 setw -g window-status-format         ' #I #W '
 setw -g window-status-current-format ' #I #W '
 setw -g window-status-current-style  'fg=colour4,bold'
-setw -g window-status-style          'fg=colour8'
+setw -g window-status-style          'fg=colour245'
 # <<< zsh_stuff tmux defaults <<<
 EOF
 )
@@ -480,7 +480,7 @@ if [ -f "$SSH_CONFIG" ]; then
         echo "  ✓ Appended SSH keepalive block to $SSH_CONFIG"
     fi
 else
-    printf "%s\n" "$SSH_BLOCK" > "$SSH_CONFIG"
+    (umask 077 && printf "%s\n" "$SSH_BLOCK" > "$SSH_CONFIG")
     echo "  ✓ Created $SSH_CONFIG"
 fi
 chmod 600 "$SSH_CONFIG" 2>/dev/null || true
