@@ -34,6 +34,8 @@ bindkey | less
 |---|---|
 | `cls` | `clear` |
 | `..` / `...` / `....` | Jump up 1 / 2 / 3 directories |
+| `z PATTERN` | Jump to most-used directory matching pattern (zoxide, if installed) |
+| `zi` | Interactive directory picker with zoxide + fzf |
 | `ls` | Uses `lsd` when installed; otherwise system `ls` |
 | `l` | `lsd -l` when available; otherwise `ls -lFh` |
 | `la` | `lsd -la` when available; otherwise `ls -lAFh` |
@@ -71,6 +73,7 @@ bindkey | less
 | `glog` | `git log --oneline --decorate --graph` |
 | `glp` | Pretty graph log with relative date + author |
 | `cdg` | `cd` to repo root (or stay in current dir if not in repo) |
+| `lg` | Open `lazygit` TUI (if installed) |
 | `gbr` | Fuzzy branch switcher (uses `fzf`) |
 | `branch_bye` | Switch to main/default branch and delete current branch |
 | `pr` | Open GitHub PR page or GitLab MR page for current branch |
@@ -86,7 +89,7 @@ bindkey | less
 | `gco` / `gcb` | `git checkout` / `git checkout -b` |
 | `gsw` / `gswc` | `git switch` / `git switch --create` |
 | `gcm` | `git checkout $(git_main_branch)` |
-| `gd` / `gds` | `git diff` / `git diff --staged` |
+| `gd` / `gds` | `git diff` / `git diff --staged` (syntax-highlighted via `delta` if installed) |
 | `gb` / `gba` / `gbd` | Local branches / all branches / delete branch |
 | `glo` / `gloga` | One-line log / graph one-line log (all branches) |
 | `gl` / `gpr` | `git pull` / `git pull --rebase` |
@@ -127,7 +130,7 @@ Managed tmux config (from `setup_zsh.sh`):
 | Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` / `Enter` in copy mode | Copy to clipboard via `wl-copy` or `xclip` when available |
 | Mouse mode | Enabled |
-| Status bar | Top |
+| Status bar | Top — session name (left), load avg + RAM + time (right), updates every 5s |
 | Window/pane index | Starts at `1` |
 
 Useful default tmux keys (not remapped):

@@ -1,3 +1,9 @@
+# Fastfetch: show system info before instant prompt (local sessions only).
+# Must run before the p10k instant prompt block to avoid console-output warnings.
+if [[ -z "${SSH_CONNECTION:-}" && -o interactive ]] && command -v fastfetch &>/dev/null; then
+    fastfetch
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -58,10 +64,11 @@ plugins=(
     git
     colored-man-pages
     extract
-    z
     fzf
     zsh-history-substring-search
 )
+# Load z plugin only when zoxide is not installed (zoxide provides the z command)
+command -v zoxide &>/dev/null || plugins+=(z)
 (( _command_not_found_enabled )) && plugins+=(command-not-found)
 
 # Load complist (provides menu-select widget for navigable completion menus).
@@ -984,12 +991,6 @@ fi
 # ── Powerlevel10k config ─────────────────────────────────────────────
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-# ── Fastfetch (system info on shell start, local sessions only) ──────
-
-if [[ -z "${SSH_CONNECTION:-}" && -o interactive ]] && command -v fastfetch &>/dev/null; then
-    fastfetch
-fi
 
 # ── Local overrides (not managed by setup script) ────────────────────
 
