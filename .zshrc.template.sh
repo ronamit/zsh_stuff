@@ -592,30 +592,36 @@ LISTMAX=20
 # ── Key bindings ─────────────────────────────────────────────────────
 
 # Sticky prefix history search: keeps original typed query while cycling.
+# Uses raw .history-beginning-search-{backward,forward} builtins to avoid
+# continuation-state conflicts with the autoloaded up/down-line-or-beginning-search
+# wrappers (which check LASTWIDGET internally and break when called from our widgets).
 typeset -g _history_prefix_query=""
 _history_prefix_search_up() {
     if [[ $LASTWIDGET != _history_prefix_search_up &&
           $LASTWIDGET != _history_prefix_search_down &&
-          $LASTWIDGET != _down_history_or_dirs &&
-          $LASTWIDGET != up-line-or-beginning-search &&
-          $LASTWIDGET != down-line-or-beginning-search ]]; then
+          $LASTWIDGET != _down_history_or_dirs ]]; then
         _history_prefix_query="$BUFFER"
     fi
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
-    zle up-line-or-beginning-search
+    zle .history-beginning-search-backward
+    zle .end-of-line
 }
 _history_prefix_search_down() {
     if [[ $LASTWIDGET != _history_prefix_search_up &&
           $LASTWIDGET != _history_prefix_search_down &&
-          $LASTWIDGET != _down_history_or_dirs &&
-          $LASTWIDGET != up-line-or-beginning-search &&
-          $LASTWIDGET != down-line-or-beginning-search ]]; then
+          $LASTWIDGET != _down_history_or_dirs ]]; then
         _history_prefix_query="$BUFFER"
     fi
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
-    zle down-line-or-beginning-search
+    if zle .history-beginning-search-forward; then
+        zle .end-of-line
+    else
+        # No more forward matches — restore original input
+        BUFFER="$_history_prefix_query"
+        CURSOR=${#BUFFER}
+    fi
 }
 zle -N _history_prefix_search_up
 zle -N _history_prefix_search_down
@@ -631,8 +637,6 @@ _down_history_or_dirs() {
 
     if [[ $LASTWIDGET == _history_prefix_search_up ||
           $LASTWIDGET == _history_prefix_search_down ||
-          $LASTWIDGET == up-line-or-beginning-search ||
-          $LASTWIDGET == down-line-or-beginning-search ||
           $LASTWIDGET == _down_history_or_dirs ]]; then
         in_history_scroll=1
     fi
@@ -686,6 +690,17 @@ _tab_accept_or_complete() {
     fi
 
     if [[ "$BUFFER" != "$_before_buffer" || $CURSOR -ne $_before_cursor ]]; then
+        # Autosuggestion was accepted — append / if last word is a directory.
+        local -a _words=(${(z)BUFFER})
+        if (( ${#_words} )); then
+            local _last="${_words[-1]}"
+            # Expand ~ to $HOME for the directory test
+            local _expanded="${_last/#\~/$HOME}"
+            if [[ -d "$_expanded" && "$BUFFER" != */ ]]; then
+                BUFFER="${BUFFER}/"
+                CURSOR=${#BUFFER}
+            fi
+        fi
         return 0
     fi
 
@@ -916,10 +931,6 @@ if (( $+functions[add-zsh-hook] )); then
 fi
 
 if [[ -o interactive ]]; then
-    autoload -U up-line-or-beginning-search down-line-or-beginning-search
-    zle -N up-line-or-beginning-search
-    zle -N down-line-or-beginning-search
-
     # Apply current auto-list mode (on by default, configurable).
     _apply_autolist_mode
 

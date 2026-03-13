@@ -17,7 +17,8 @@
       "Read(//home/rona/**)",
       "Bash(bash setup_zsh.sh)",
       "Bash(tmux source-file:*)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Read(//usr/share/zsh/**)"
     ]
   }
 }
