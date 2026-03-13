@@ -130,7 +130,7 @@ Managed tmux config (from `setup_zsh.sh`):
 | Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` / `Enter` in copy mode | Copy to clipboard via `wl-copy` or `xclip` when available |
 | Mouse mode | Enabled |
-| Status bar | Top — session name (left), load avg + RAM + time (right), updates every 5s |
+| Status bar | Top — session + hostname (left); CPU%, RAM, GPU% (if nvidia-smi), time (right); updates every 5s |
 | Window/pane index | Starts at `1` |
 
 Useful default tmux keys (not remapped):

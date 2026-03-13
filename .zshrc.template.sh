@@ -82,6 +82,8 @@ if (( _fzf_tab_loaded )); then
     source "$_fzf_tab_plugin"
     zstyle ':fzf-tab:*' fzf-flags '--height=40% --layout=reverse --border'
     zstyle ':fzf-tab:*' switch-group ',' '.'
+    # Press / in the fzf-tab menu to accept a directory and immediately complete the next path component
+    zstyle ':fzf-tab:*' continuous-trigger '/'
 fi
 
 # ══════════════════════════════════════════════════════════════════════

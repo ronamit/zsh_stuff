@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.tonybtw.com)",
+      "WebFetch(domain:arcolinux.com)",
+      "WebFetch(domain:tao-of-tmux.readthedocs.io)",
+      "WebFetch(domain:tmuxai.dev)",
+      "WebFetch(domain:chadaustin.me)",
+      "WebFetch(domain:hamvocke.com)",
+      "WebFetch(domain:medium.com)",
+      "WebSearch",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:sebastiano.tronto.net)",
+      "WebFetch(domain:www.medo64.com)",
+      "WebFetch(domain:atomicules.co.uk)"
     ]
   }
 }

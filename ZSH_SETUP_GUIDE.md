@@ -97,7 +97,7 @@ For all daily shortcuts (especially git workflows), see:
 
 Additional defaults: mouse mode on, history increased, window/pane numbering starts at `1`, status bar at top, truecolor enabled (`RGB` with `Tc` compatibility), OSC 8 hyperlinks enabled, and passthrough allowed for compatible terminals/apps.
 
-**Status bar** (top): shows session name on the left; load average, RAM usage, and time on the right. Updates every 5 seconds via `~/.local/bin/tmux-status`.
+**Status bar** (top): left shows session name + hostname; right shows CPU%, RAM, GPU% (if `nvidia-smi` is available), and time. Updates every 5 seconds via `~/.local/bin/tmux-status`.
 
 ## Where to Customize
 

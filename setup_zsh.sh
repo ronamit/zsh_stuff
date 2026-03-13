@@ -408,10 +408,14 @@ if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>
 
 # Status bar
 set -g status-interval 5
-set -g status-left '#[fg=colour4,bold] #S '
-set -g status-left-length 30
-set -g status-right '#[fg=colour2]#($HOME/.local/bin/tmux-status) #[fg=colour6] %H:%M '
-set -g status-right-length 60
+set -g status-left '#[fg=colour4,bold] #S #[fg=colour8,nobold] │ #[fg=colour7]#h '
+set -g status-left-length 40
+set -g status-right '#[fg=colour2]#($HOME/.local/bin/tmux-status) #[fg=colour8] │ #[fg=colour6]%H:%M '
+set -g status-right-length 80
+setw -g window-status-format         ' #I #W '
+setw -g window-status-current-format ' #I #W '
+setw -g window-status-current-style  'fg=colour4,bold'
+setw -g window-status-style          'fg=colour8'
 # <<< zsh_stuff tmux defaults <<<
 EOF
 )
@@ -520,15 +524,26 @@ step "Creating tmux status script..."
 mkdir -p "$HOME/.local/bin"
 cat > "$HOME/.local/bin/tmux-status" << 'STATUSEOF'
 #!/bin/bash
-# Outputs load avg + RAM for tmux status-right. Works on Linux and macOS.
-if [[ -f /proc/loadavg ]]; then
-    load=$(cut -d' ' -f1 /proc/loadavg)
-    ram=$(free -h 2>/dev/null | awk 'NR==2{gsub(/i/,""); print $3"/"$2}')
+# Outputs CPU% + RAM [+ GPU%] for tmux status-right. Works on Linux and macOS.
+if [[ -f /proc/stat ]]; then
+    # Linux: vmstat 1 2 takes a 1-second sample for accurate CPU%
+    cpu=$(vmstat 1 2 2>/dev/null | awk 'END{printf "%.0f", 100-$15}')
+    ram=$(free -h 2>/dev/null | awk 'NR==2{gsub(/i/,""); printf "%s/%s", $3, $2}')
 else
-    load=$(sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}')
+    # macOS: parse top idle% → used% = 100 - idle
+    cpu=$(top -l1 -n0 2>/dev/null | awk '/CPU usage/{gsub(/%|,/,""); print 100-$NF}')
     ram=$(top -l1 -n0 2>/dev/null | awk '/PhysMem/{print $2" used"}')
 fi
-printf "load %s  ram %s" "${load:-?}" "${ram:-?}"
+
+out="CPU ${cpu:-?}%  RAM ${ram:-?}"
+
+# Append GPU utilization if nvidia-smi is available
+if command -v nvidia-smi &>/dev/null; then
+    gpu=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk '{sum+=$1; n++} END{if(n) printf "%.0f", sum/n}')
+    [[ -n "$gpu" ]] && out="$out  GPU ${gpu}%"
+fi
+
+printf "%s" "$out"
 STATUSEOF
 chmod +x "$HOME/.local/bin/tmux-status"
 echo "  ✓ Created ~/.local/bin/tmux-status"
