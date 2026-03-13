@@ -163,6 +163,21 @@ typeset -U path PATH
 [[ -d "$HOME/bin" ]]        && path=("$HOME/bin" $path)
 export PATH
 
+# run-help: Alt+H or "help <cmd>" shows man for builtins/commands (e.g. help git).
+autoload -Uz run-help
+unalias run-help 2>/dev/null
+alias help=run-help
+autoload -Uz run-help-git run-help-ip run-help-openssl run-help-sudo run-help-svn
+
+# Colored man pages (bold/underline in less); plugin adds semantics, this improves rendering.
+export LESS_TERMCAP_mb=$'\E[01;31m'
+export LESS_TERMCAP_md=$'\E[01;38;5;74m'
+export LESS_TERMCAP_me=$'\E[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[38;5;246m'
+export LESS_TERMCAP_ue=$'\E[0m'
+export LESS_TERMCAP_us=$'\E[04;38;5;146m'
+
 # ── Utility: open URL/path with system opener ────────────────────────
 
 _open_default() {
@@ -185,6 +200,7 @@ alias cls='clear'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
+alias -- -='cd -'   # Go to previous directory (complements AUTO_PUSHD)
 
 if (( _lsd_installed )); then
     alias ls='lsd'
@@ -480,17 +496,23 @@ alias reload='source ~/.zshrc && echo "✓ zsh config reloaded"'
 
 # ── History ──────────────────────────────────────────────────────────
 
-HISTFILE=~/.zsh_history
+# Use XDG State directory when available (persistent history per spec).
+_zsh_state="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
+[[ -d "$_zsh_state" ]] || mkdir -p "$_zsh_state"
+HISTFILE="${_zsh_state}/history"
+unset _zsh_state
+
 HISTSIZE=100000
 SAVEHIST=100000
 setopt EXTENDED_HISTORY
-setopt INC_APPEND_HISTORY
 typeset -g _share_history_pref="${ZSH_SHARE_HISTORY:-0}"
 case "${_share_history_pref:l}" in
     1|on|true|yes) setopt SHARE_HISTORY ;;
     *) unsetopt SHARE_HISTORY ;;
 esac
 unset _share_history_pref
+# INC_APPEND_HISTORY is implied by SHARE_HISTORY; only set when not sharing.
+[[ -o sharehistory ]] || setopt INC_APPEND_HISTORY
 setopt HIST_EXPIRE_DUPS_FIRST
 setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_ALL_DUPS
