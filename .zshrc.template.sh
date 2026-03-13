@@ -596,6 +596,7 @@ typeset -g _history_prefix_query=""
 _history_prefix_search_up() {
     if [[ $LASTWIDGET != _history_prefix_search_up &&
           $LASTWIDGET != _history_prefix_search_down &&
+          $LASTWIDGET != _down_history_or_dirs &&
           $LASTWIDGET != up-line-or-beginning-search &&
           $LASTWIDGET != down-line-or-beginning-search ]]; then
         _history_prefix_query="$BUFFER"
@@ -607,6 +608,7 @@ _history_prefix_search_up() {
 _history_prefix_search_down() {
     if [[ $LASTWIDGET != _history_prefix_search_up &&
           $LASTWIDGET != _history_prefix_search_down &&
+          $LASTWIDGET != _down_history_or_dirs &&
           $LASTWIDGET != up-line-or-beginning-search &&
           $LASTWIDGET != down-line-or-beginning-search ]]; then
         _history_prefix_query="$BUFFER"
@@ -651,10 +653,10 @@ _down_history_or_dirs() {
         fi
     fi
 
-    if (( in_dir_context )); then
-        zle menu-complete
-    elif (( in_history_scroll )); then
+    if (( in_history_scroll )); then
         zle _history_prefix_search_down
+    elif (( in_dir_context )); then
+        zle menu-complete
     else
         zle _history_prefix_search_down
     fi
