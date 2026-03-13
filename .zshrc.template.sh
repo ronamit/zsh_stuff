@@ -596,30 +596,33 @@ LISTMAX=20
 # state, since plugin widget-wrapping can change LASTWIDGET names.
 typeset -g _history_prefix_query=""
 typeset -gi _history_scroll_active=0
+typeset -g _history_scroll_last_buffer=""
 _history_prefix_search_up() {
-    if (( !_history_scroll_active )); then
+    if (( !_history_scroll_active )) || [[ "$BUFFER" != "$_history_scroll_last_buffer" ]]; then
         _history_prefix_query="$BUFFER"
+        _history_scroll_active=1
     fi
-    _history_scroll_active=1
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
     zle .history-beginning-search-backward
     zle .end-of-line
+    _history_scroll_last_buffer="$BUFFER"
 }
 _history_prefix_search_down() {
-    if (( !_history_scroll_active )); then
+    if (( !_history_scroll_active )) || [[ "$BUFFER" != "$_history_scroll_last_buffer" ]]; then
         _history_prefix_query="$BUFFER"
+        _history_scroll_active=1
     fi
-    _history_scroll_active=1
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
-    if zle .history-beginning-search-forward; then
-        zle .end-of-line
-    else
-        # No more forward matches — restore original input
-        BUFFER="$_history_prefix_query"
+    zle .history-beginning-search-forward
+    # If forward search didn't move (stayed on same entry), restore original input
+    if [[ "$BUFFER" == "$_history_prefix_query" ]]; then
         CURSOR=${#BUFFER}
+    else
+        zle .end-of-line
     fi
+    _history_scroll_last_buffer="$BUFFER"
 }
 zle -N _history_prefix_search_up
 zle -N _history_prefix_search_down
@@ -628,9 +631,15 @@ zle -N _history_prefix_search_down
 # completions for cd/pushd/popd, AUTO_CD-style path input, or path-like args.
 _down_history_or_dirs() {
     local cmd="${BUFFER%%[[:space:]]*}"
+    local in_history_scroll=0
     local in_dir_context=0
     local -a words=()
     local current_word=""
+
+    # Detect active history scroll: flag is set AND buffer hasn't been edited
+    if (( _history_scroll_active )) && [[ "$BUFFER" == "$_history_scroll_last_buffer" ]]; then
+        in_history_scroll=1
+    fi
 
     if [[ $CURSOR -eq ${#BUFFER} ]]; then
         if [[ "$cmd" == "cd" || "$cmd" == "pushd" || "$cmd" == "popd" ]]; then
@@ -648,7 +657,7 @@ _down_history_or_dirs() {
         fi
     fi
 
-    if (( _history_scroll_active )); then
+    if (( in_history_scroll )); then
         zle _history_prefix_search_down
     elif (( in_dir_context )); then
         zle menu-complete
