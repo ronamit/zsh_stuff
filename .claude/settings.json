@@ -19,7 +19,8 @@
       "Bash(tmux source-file:*)",
       "Bash(echo \"exit: $?\")",
       "Read(//usr/share/zsh/**)",
-      "Bash($HOME/.local/bin/tmux-status)"
+      "Bash($HOME/.local/bin/tmux-status)",
+      "Bash(ls /home/rona/zsh_stuff/*.sh /home/rona/zsh_stuff/*.md)"
     ]
   }
 }

@@ -21,6 +21,25 @@ if [[ -o interactive && -t 1 && "$TERM" == "dumb" ]]; then
     export TERM=xterm-256color
 fi
 
+# If TERM is not recognized (no terminfo entry), fall back to xterm-256color.
+# This commonly happens when SSHing from terminals like Ghostty (xterm-ghostty),
+# Kitty, or WezTerm to servers that don't have their terminfo installed.
+if [[ -o interactive && -t 1 && "$TERM" != "dumb" ]]; then
+    if ! infocmp "$TERM" &>/dev/null 2>&1; then
+        export TERM=xterm-256color
+    fi
+fi
+
+# Ensure COLORTERM is set for truecolor support (especially over SSH where
+# SendEnv may not be accepted by the server's sshd_config).
+if [[ -o interactive && -t 1 && -z "${COLORTERM:-}" ]]; then
+    if infocmp "$TERM" 2>/dev/null | grep -q 'colors#0*16777216\|setrgbf\|RGB' 2>/dev/null; then
+        export COLORTERM=truecolor
+    elif [[ "$TERM" == *256color* || "$TERM" == *ghostty* || "$TERM" == *kitty* ]]; then
+        export COLORTERM=truecolor
+    fi
+fi
+
 # Disable mouse reporting so scroll in SSH (and plain shells) doesn't dump raw escape codes.
 # Apps like vim/less will re-enable it when they start.
 if [[ -o interactive && -t 1 ]]; then
@@ -285,6 +304,20 @@ fi
 [[ -x "$HOME/vpn/vpn-connect.sh" ]]    && alias vpn-connect='bash ~/vpn/vpn-connect.sh'
 [[ -x "$HOME/vpn/vpn-disconnect.sh" ]] && alias vpn-disconnect='bash ~/vpn/vpn-disconnect.sh'
 [[ -x "$HOME/vpn/vpn-status.sh" ]]     && alias vpn-status='bash ~/vpn/vpn-status.sh'
+
+# Push local terminfo to a remote server so SSH preserves full color support.
+# Usage: ssh-fix-colors user@host
+ssh-fix-colors() {
+    local host="${1:?usage: ssh-fix-colors user@host}"
+    if ! command -v infocmp &>/dev/null; then
+        echo "infocmp not found (install ncurses-bin)"
+        return 1
+    fi
+    echo "Installing '$TERM' terminfo on $host..."
+    infocmp -x "$TERM" | command ssh "$host" -- tic -x - 2>/dev/null \
+        && echo "Done — '$TERM' is now available on $host" \
+        || echo "Failed — you may need to install ncurses on the remote"
+}
 
 # SSH wrapper for VPN-required hosts.
 # Behavior:

@@ -19,8 +19,8 @@ TMUX_CONF="$HOME/.tmux.conf"
 TMUX_MARKER_BEGIN="# >>> zsh_stuff tmux defaults >>>"
 TMUX_MARKER_END="# <<< zsh_stuff tmux defaults <<<"
 SSH_CONFIG="$HOME/.ssh/config"
-SSH_MARKER_BEGIN="# >>> zsh_stuff ssh keepalive >>>"
-SSH_MARKER_END="# <<< zsh_stuff ssh keepalive <<<"
+SSH_MARKER_BEGIN="# >>> zsh_stuff ssh defaults >>>"
+SSH_MARKER_END="# <<< zsh_stuff ssh defaults <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
 BACKUP_DIR="$HOME/.zsh_backups"
@@ -273,6 +273,7 @@ else
 add_pkg_if_missing_cmd wget  wget
 add_pkg_if_missing_cmd unzip unzip
 add_pkg_if_missing_cmd fc-cache fontconfig
+add_pkg_if_missing_cmd tic ncurses-bin
 
 # CLI tools used by aliases/functions
 add_pkg_if_missing_cmd fzf  fzf
@@ -449,17 +450,19 @@ fi
 
 # ── SSH keepalive defaults ───────────────────────────────────────────
 
-step "Configuring SSH keepalive defaults..."
+step "Configuring SSH defaults (keepalive + color forwarding)..."
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh" 2>/dev/null || true
 
 SSH_BLOCK=$(cat << 'EOF'
-# >>> zsh_stuff ssh keepalive >>>
+# >>> zsh_stuff ssh defaults >>>
 Host *
     ServerAliveInterval 30
     ServerAliveCountMax 3
     TCPKeepAlive yes
-# <<< zsh_stuff ssh keepalive <<<
+    # Forward COLORTERM so remote apps can use truecolor when supported.
+    SendEnv COLORTERM
+# <<< zsh_stuff ssh defaults <<<
 EOF
 )
 
@@ -474,10 +477,10 @@ if [ -f "$SSH_CONFIG" ]; then
         ' "$SSH_CONFIG" > "$SSH_CONFIG.tmp"
         rm -f "$_ssh_block_tmp"
         mv "$SSH_CONFIG.tmp" "$SSH_CONFIG"
-        echo "  ✓ Updated managed SSH keepalive block"
+        echo "  ✓ Updated managed SSH defaults block"
     else
         printf "\n%s\n" "$SSH_BLOCK" >> "$SSH_CONFIG"
-        echo "  ✓ Appended SSH keepalive block to $SSH_CONFIG"
+        echo "  ✓ Appended SSH defaults block to $SSH_CONFIG"
     fi
 else
     (umask 077 && printf "%s\n" "$SSH_BLOCK" > "$SSH_CONFIG")
@@ -528,6 +531,99 @@ if ! has_hack_nerd_font; then
 else
     echo "  ✓ Hack Nerd Font already installed"
 fi
+fi
+
+# ── Modern terminal terminfo (Ghostty, Kitty, etc.) ─────────────────
+# Install terminfo for popular modern terminals so SSH sessions from
+# these terminals get full color support without any manual steps.
+# Installed to ~/.terminfo/ (user-local, no root needed).
+
+step "Installing modern terminal terminfo entries..."
+
+install_terminfo_from_url() {
+    local name="$1" url="$2"
+    if infocmp "$name" &>/dev/null 2>&1; then
+        echo "  ✓ $name terminfo already available"
+        return 0
+    fi
+    local tmpfile
+    tmpfile=$(mktemp)
+    if curl -fsSL --connect-timeout 10 -o "$tmpfile" "$url" 2>/dev/null && [ -s "$tmpfile" ]; then
+        if tic -x -o "$HOME/.terminfo" "$tmpfile" 2>/dev/null; then
+            echo "  ✓ Installed $name terminfo"
+            rm -f "$tmpfile"
+            return 0
+        fi
+    fi
+    rm -f "$tmpfile"
+    return 1
+}
+
+install_terminfo_from_string() {
+    local name="$1" definition="$2"
+    if infocmp "$name" &>/dev/null 2>&1; then
+        return 0
+    fi
+    local tmpfile
+    tmpfile=$(mktemp)
+    printf '%s\n' "$definition" > "$tmpfile"
+    if tic -x -o "$HOME/.terminfo" "$tmpfile" 2>/dev/null; then
+        echo "  ✓ Installed $name terminfo (embedded fallback)"
+        rm -f "$tmpfile"
+        return 0
+    fi
+    rm -f "$tmpfile"
+    echo "  - Could not compile $name terminfo"
+    return 1
+}
+
+mkdir -p "$HOME/.terminfo"
+
+if command -v tic &>/dev/null; then
+    # Ghostty (xterm-ghostty)
+    if ! infocmp xterm-ghostty &>/dev/null 2>&1; then
+        if ! install_terminfo_from_url "xterm-ghostty" \
+            "https://raw.githubusercontent.com/ghostty-org/ghostty/main/src/terminfo/ghostty.terminfo"; then
+            # Embedded minimal fallback: extends xterm-256color with RGB
+            install_terminfo_from_string "xterm-ghostty" \
+'xterm-ghostty|Ghostty terminal emulator,
+	use=xterm-256color,
+	setrgbf=\E[38;2;%p1%d;%p2%d;%p3%dm,
+	setrgbb=\E[48;2;%p1%d;%p2%d;%p3%dm,
+	RGB,'
+        fi
+    else
+        echo "  ✓ xterm-ghostty terminfo already available"
+    fi
+
+    # Kitty (xterm-kitty)
+    if ! infocmp xterm-kitty &>/dev/null 2>&1; then
+        if ! install_terminfo_from_url "xterm-kitty" \
+            "https://raw.githubusercontent.com/kovidgoyal/kitty/master/terminfo/kitty.terminfo"; then
+            install_terminfo_from_string "xterm-kitty" \
+'xterm-kitty|Kitty terminal emulator,
+	use=xterm-256color,
+	setrgbf=\E[38;2;%p1%d;%p2%d;%p3%dm,
+	setrgbb=\E[48;2;%p1%d;%p2%d;%p3%dm,
+	RGB,'
+        fi
+    else
+        echo "  ✓ xterm-kitty terminfo already available"
+    fi
+
+    # WezTerm
+    if ! infocmp wezterm &>/dev/null 2>&1; then
+        install_terminfo_from_string "wezterm" \
+'wezterm|WezTerm,
+	use=xterm-256color,
+	setrgbf=\E[38;2;%p1%d;%p2%d;%p3%dm,
+	setrgbb=\E[48;2;%p1%d;%p2%d;%p3%dm,
+	RGB,'
+    else
+        echo "  ✓ wezterm terminfo already available"
+    fi
+else
+    echo "  - tic not found; skipping terminfo installation"
 fi
 
 # ── Tmux status helper script ────────────────────────────────────────
