@@ -411,6 +411,7 @@ if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>
 bind-key u run-shell "tmux capture-pane -J -p | sed 's/[[:space:]]*$//' | grep -oE 'https?://[[:graph:]]+' | sed 's/[.,;:!?)\\]]+$//' | sort -u | fzf-tmux -p 80%,40% --prompt='Open URL: ' | xargs -r -I{} sh -c 'xdg-open \"{}\" 2>/dev/null || open \"{}\" 2>/dev/null'"
 
 # Status bar
+set -g status-style 'bg=colour235,fg=colour7'
 set -g status-interval 5
 set -g status-left '#[fg=colour4,bold] #S #[fg=colour8,nobold] │ #[fg=colour7]#h '
 set -g status-left-length 40
