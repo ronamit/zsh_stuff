@@ -264,6 +264,9 @@ if [ "$IS_MACOS" -eq 1 ]; then
     install_brew_formula_if_missing fd fd
     install_brew_formula_if_missing bat bat
     install_brew_formula_if_missing lsd lsd
+    install_brew_formula_if_missing zoxide zoxide
+    install_brew_formula_if_missing lazygit lazygit
+    install_brew_formula_if_missing fastfetch fastfetch
     echo "  ✓ Homebrew packages checked"
 else
 # Core tools
@@ -320,6 +323,11 @@ add_best_effort_pkg_if_missing_cmd eza eza
 if ! command -v delta &>/dev/null; then
     add_best_effort_pkg git-delta
 fi
+
+# Navigation, git TUI, system info
+add_best_effort_pkg_if_missing_cmd zoxide zoxide
+add_best_effort_pkg_if_missing_cmd lazygit lazygit
+add_best_effort_pkg_if_missing_cmd fastfetch fastfetch
 
 # Clipboard for tmux copy-mode
 if ! command -v xclip &>/dev/null && ! command -v wl-copy &>/dev/null; then
@@ -397,6 +405,13 @@ if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>
   'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+
+# Status bar
+set -g status-interval 5
+set -g status-left '#[fg=colour4,bold] #S '
+set -g status-left-length 30
+set -g status-right '#[fg=colour2]#($HOME/.local/bin/tmux-status) #[fg=colour6] %H:%M '
+set -g status-right-length 60
 # <<< zsh_stuff tmux defaults <<<
 EOF
 )
@@ -499,6 +514,25 @@ else
 fi
 fi
 
+# ── Tmux status helper script ────────────────────────────────────────
+
+step "Creating tmux status script..."
+mkdir -p "$HOME/.local/bin"
+cat > "$HOME/.local/bin/tmux-status" << 'STATUSEOF'
+#!/bin/bash
+# Outputs load avg + RAM for tmux status-right. Works on Linux and macOS.
+if [[ -f /proc/loadavg ]]; then
+    load=$(cut -d' ' -f1 /proc/loadavg)
+    ram=$(free -h 2>/dev/null | awk 'NR==2{gsub(/i/,""); print $3"/"$2}')
+else
+    load=$(sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}')
+    ram=$(top -l1 -n0 2>/dev/null | awk '/PhysMem/{print $2" used"}')
+fi
+printf "load %s  ram %s" "${load:-?}" "${ram:-?}"
+STATUSEOF
+chmod +x "$HOME/.local/bin/tmux-status"
+echo "  ✓ Created ~/.local/bin/tmux-status"
+
 # ── Migrate exports → ~/.zshrc.local ────────────────────────────────
 
 step "Setting up ~/.zshrc.local..."
@@ -554,6 +588,17 @@ if command -v git &>/dev/null; then
     echo "  ✓ Set git aliases: sw, swc"
 else
     echo "  ⚠ git not found; skipped git alias setup"
+fi
+
+step "Configuring delta as git pager..."
+if command -v delta &>/dev/null; then
+    git config --global core.pager delta
+    git config --global interactive.diffFilter 'delta --color-only'
+    git config --global delta.navigate true
+    git config --global delta.side-by-side true
+    echo "  ✓ delta configured as git pager"
+else
+    echo "  - delta not found; skipping (install git-delta and re-run)"
 fi
 
 # ── ~/.zshenv (skip_global_compinit) ─────────────────────────────────

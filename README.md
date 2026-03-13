@@ -20,10 +20,12 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 ## What `setup_zsh.sh` Does
 
 - Installs zsh, Oh My Zsh, Powerlevel10k, and plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-history-substring-search`, `fzf-tab`).
-- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.).
-- **macOS**: installs CLI tools via Homebrew (fzf, fd, bat, ripgrep, tree, tmux, lsd).
+- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, zoxide, lazygit, fastfetch, etc.).
+- **macOS**: installs CLI tools via Homebrew (same list).
+- Configures `delta` as the git pager if installed (`git diff`, `git log -p`, `git show` get syntax highlighting).
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
-- Configures tmux defaults, `.zshenv`, and `.bashrc` fallback (zsh auto-launch when you start bash).
+- Configures tmux defaults including a status bar showing session name, load average, RAM usage, and time.
+- Creates `~/.local/bin/tmux-status` helper script used by the tmux status bar.
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
 - Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.
 - Creates `~/.zshrc.local` for personal tokens/exports (never overwritten).
@@ -85,6 +87,7 @@ fi
 - Copy mode is Vim-style (`Prefix + [` to enter copy mode).
 - Drag and release with mouse in a pane to select and copy without using `Shift`.
 - In copy mode, `y` and `Enter` copy to system clipboard via `wl-copy` (Wayland) or `xclip` (X11) when available.
+- Status bar (top) shows: session name | load average | RAM usage | time — updates every 5 seconds.
 
 ## Files
 

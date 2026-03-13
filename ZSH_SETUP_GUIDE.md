@@ -21,9 +21,11 @@ After the script finishes:
 
 Major setup actions performed by the installer:
 - Installs zsh, Oh My Zsh, Powerlevel10k, and key plugins (`zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `fzf-tab`).
-- Installs common CLI tools (`fzf`, `fd`, `bat`, `ripgrep`, `tree`, `tmux`, `lsd`, etc.).
+- Installs common CLI tools (`fzf`, `fd`, `bat`, `ripgrep`, `tree`, `tmux`, `lsd`, `zoxide`, `lazygit`, `fastfetch`, etc.).
+- Configures `delta` as the git pager if installed — `git diff`, `git log -p`, and `git show` get syntax highlighting automatically.
 - Installs Hack Nerd Font files.
-- Applies managed tmux defaults in `~/.tmux.conf`.
+- Applies managed tmux defaults in `~/.tmux.conf`, including a status bar (session name, load average, RAM, time).
+- Creates `~/.local/bin/tmux-status` helper script for the status bar.
 - Backs up and replaces your existing `~/.zshrc` with the project config, and preserves/creates `~/.zshrc.local`.
 - Sets zsh as default shell (with `.bashrc` fallback) and adds global git aliases (`git sw`, `git swc`).
 
@@ -36,10 +38,12 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 - Installs zsh, Oh My Zsh, Powerlevel10k.
 - Installs plugins: `zsh-autosuggestions`, `zsh-history-substring-search`, `zsh-syntax-highlighting`, `fzf-tab`.
-- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.). Optional packages are best-effort.
-- **macOS**: installs CLI tools via Homebrew (fzf, fd, bat, ripgrep, tree, tmux, lsd, etc.).
+- **Linux**: installs CLI tools via apt (fzf, fd, bat, ripgrep, tree, tmux, lsd, zoxide, lazygit, fastfetch, etc.). Optional packages are best-effort.
+- **macOS**: installs CLI tools via Homebrew (same list).
+- Configures `delta` as the git pager if installed — no command changes needed, it just replaces the pager for `git diff`, `git log -p`, `git show`.
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
-- Adds a managed tmux config block to `~/.tmux.conf`.
+- Adds a managed tmux config block to `~/.tmux.conf`, including a status bar with session name, load average, RAM, and time.
+- Creates `~/.local/bin/tmux-status` — the helper script powering the tmux status bar (works on Linux and macOS).
 - Backs up your existing `~/.zshrc` to `~/.zsh_backups/` and replaces it from `.zshrc.template.sh`.
 - Ensures `~/.zshenv` has `skip_global_compinit=1` (Ubuntu compatibility).
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).

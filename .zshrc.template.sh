@@ -163,6 +163,11 @@ typeset -U path PATH
 [[ -d "$HOME/bin" ]]        && path=("$HOME/bin" $path)
 export PATH
 
+# zoxide: smarter cd with frequency+recency ranking (overrides z plugin's z command when installed)
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init zsh)"
+fi
+
 # run-help: Alt+H or "help <cmd>" shows man for builtins/commands (e.g. help git).
 autoload -Uz run-help
 unalias run-help 2>/dev/null
@@ -313,6 +318,7 @@ ssh() {
 alias glog='git log --oneline --decorate --graph'
 alias glp='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit'
 alias cdg='cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"'
+command -v lazygit &>/dev/null && alias lg='lazygit'
 
 # Interactive branch switcher (requires fzf)
 if command -v fzf &>/dev/null; then
@@ -978,6 +984,12 @@ fi
 # ── Powerlevel10k config ─────────────────────────────────────────────
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# ── Fastfetch (system info on shell start, local sessions only) ──────
+
+if [[ -z "${SSH_CONNECTION:-}" && -o interactive ]] && command -v fastfetch &>/dev/null; then
+    fastfetch
+fi
 
 # ── Local overrides (not managed by setup script) ────────────────────
 
