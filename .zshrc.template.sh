@@ -592,27 +592,25 @@ LISTMAX=20
 # ── Key bindings ─────────────────────────────────────────────────────
 
 # Sticky prefix history search: keeps original typed query while cycling.
-# Uses raw .history-beginning-search-{backward,forward} builtins to avoid
-# continuation-state conflicts with the autoloaded up/down-line-or-beginning-search
-# wrappers (which check LASTWIDGET internally and break when called from our widgets).
+# Uses a flag (_history_scroll_active) instead of LASTWIDGET to track scroll
+# state, since plugin widget-wrapping can change LASTWIDGET names.
 typeset -g _history_prefix_query=""
+typeset -gi _history_scroll_active=0
 _history_prefix_search_up() {
-    if [[ $LASTWIDGET != _history_prefix_search_up &&
-          $LASTWIDGET != _history_prefix_search_down &&
-          $LASTWIDGET != _down_history_or_dirs ]]; then
+    if (( !_history_scroll_active )); then
         _history_prefix_query="$BUFFER"
     fi
+    _history_scroll_active=1
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
     zle .history-beginning-search-backward
     zle .end-of-line
 }
 _history_prefix_search_down() {
-    if [[ $LASTWIDGET != _history_prefix_search_up &&
-          $LASTWIDGET != _history_prefix_search_down &&
-          $LASTWIDGET != _down_history_or_dirs ]]; then
+    if (( !_history_scroll_active )); then
         _history_prefix_query="$BUFFER"
     fi
+    _history_scroll_active=1
     BUFFER="$_history_prefix_query"
     CURSOR=${#BUFFER}
     if zle .history-beginning-search-forward; then
@@ -630,16 +628,9 @@ zle -N _history_prefix_search_down
 # completions for cd/pushd/popd, AUTO_CD-style path input, or path-like args.
 _down_history_or_dirs() {
     local cmd="${BUFFER%%[[:space:]]*}"
-    local in_history_scroll=0
     local in_dir_context=0
     local -a words=()
     local current_word=""
-
-    if [[ $LASTWIDGET == _history_prefix_search_up ||
-          $LASTWIDGET == _history_prefix_search_down ||
-          $LASTWIDGET == _down_history_or_dirs ]]; then
-        in_history_scroll=1
-    fi
 
     if [[ $CURSOR -eq ${#BUFFER} ]]; then
         if [[ "$cmd" == "cd" || "$cmd" == "pushd" || "$cmd" == "popd" ]]; then
@@ -657,7 +648,7 @@ _down_history_or_dirs() {
         fi
     fi
 
-    if (( in_history_scroll )); then
+    if (( _history_scroll_active )); then
         zle _history_prefix_search_down
     elif (( in_dir_context )); then
         zle menu-complete
@@ -849,6 +840,7 @@ _self_insert_with_autolist() {
     else
         zle .self-insert
     fi
+    _history_scroll_active=0
     zle _maybe_auto_list_choices
 }
 zle -N _self_insert_with_autolist
@@ -859,12 +851,14 @@ _magic_space_with_autolist() {
     else
         zle .magic-space
     fi
+    _history_scroll_active=0
     _auto_list_last_buffer=""
     zle _maybe_auto_list_choices
 }
 zle -N _magic_space_with_autolist
 
 _accept_line_with_autolist_reset() {
+    _history_scroll_active=0
     _auto_list_last_buffer=""
     if (( $+widgets[autosuggest-accept-line] )); then
         zle autosuggest-accept-line
@@ -882,6 +876,7 @@ _bracketed_paste_with_autolist() {
         zle .bracketed-paste
     fi
     _auto_list_in_paste=0
+    _history_scroll_active=0
     _auto_list_last_buffer=""
 }
 zle -N _bracketed_paste_with_autolist
@@ -922,8 +917,13 @@ _apply_autolist_mode() {
     fi
 }
 
+# Reset history scroll flag at each new prompt so stale state never leaks.
+_reset_history_scroll() { _history_scroll_active=0; }
+
 # Keep directory-count cache fresh while avoiding repeated scans in a single edit.
 if (( $+functions[add-zsh-hook] )); then
+    add-zsh-hook -D precmd _reset_history_scroll 2>/dev/null
+    add-zsh-hook precmd _reset_history_scroll
     add-zsh-hook -D chpwd _autolist_invalidate_cd_cache 2>/dev/null
     add-zsh-hook chpwd _autolist_invalidate_cd_cache
     add-zsh-hook -D precmd _autolist_invalidate_cd_cache 2>/dev/null
