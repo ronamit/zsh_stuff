@@ -592,34 +592,48 @@ LISTMAX=20
 # ── Key bindings ─────────────────────────────────────────────────────
 
 # Sticky prefix history search: keeps original typed query while cycling.
-# Uses a flag (_history_scroll_active) instead of LASTWIDGET to track scroll
-# state, since plugin widget-wrapping can change LASTWIDGET names.
+# Uses a flag + saved HISTNO instead of LASTWIDGET (which plugin wrapping can
+# alter). All _* widgets must clear POSTDISPLAY manually since zsh-autosuggestions
+# skips wrapping them.
 typeset -g _history_prefix_query=""
 typeset -gi _history_scroll_active=0
+typeset -gi _history_scroll_histno=0
 typeset -g _history_scroll_last_buffer=""
 _history_prefix_search_up() {
+    # zsh-autosuggestions skips wrapping _* widgets, so clear ghost text manually.
+    unset POSTDISPLAY
     if (( !_history_scroll_active )) || [[ "$BUFFER" != "$_history_scroll_last_buffer" ]]; then
         _history_prefix_query="$BUFFER"
         _history_scroll_active=1
+    else
+        # Restore history position so the search continues where we left off.
+        HISTNO=$_history_scroll_histno
     fi
-    BUFFER="$_history_prefix_query"
-    CURSOR=${#BUFFER}
+    CURSOR=${#_history_prefix_query}
     zle .history-beginning-search-backward
+    _history_scroll_histno=$HISTNO
     zle .end-of-line
     _history_scroll_last_buffer="$BUFFER"
 }
 _history_prefix_search_down() {
+    unset POSTDISPLAY
     if (( !_history_scroll_active )) || [[ "$BUFFER" != "$_history_scroll_last_buffer" ]]; then
         _history_prefix_query="$BUFFER"
         _history_scroll_active=1
-    fi
-    BUFFER="$_history_prefix_query"
-    CURSOR=${#BUFFER}
-    zle .history-beginning-search-forward
-    # If forward search didn't move (stayed on same entry), restore original input
-    if [[ "$BUFFER" == "$_history_prefix_query" ]]; then
-        CURSOR=${#BUFFER}
+        _history_scroll_histno=$HISTNO
     else
+        HISTNO=$_history_scroll_histno
+    fi
+    local -i old_histno=$HISTNO
+    CURSOR=${#_history_prefix_query}
+    zle .history-beginning-search-forward
+    if (( HISTNO == old_histno )); then
+        # No forward match — restore original input
+        BUFFER="$_history_prefix_query"
+        CURSOR=${#BUFFER}
+        _history_scroll_active=0
+    else
+        _history_scroll_histno=$HISTNO
         zle .end-of-line
     fi
     _history_scroll_last_buffer="$BUFFER"
@@ -630,6 +644,7 @@ zle -N _history_prefix_search_down
 # Smart Down: keep history scrolling when active; otherwise cycle path
 # completions for cd/pushd/popd, AUTO_CD-style path input, or path-like args.
 _down_history_or_dirs() {
+    unset POSTDISPLAY
     local cmd="${BUFFER%%[[:space:]]*}"
     local in_history_scroll=0
     local in_dir_context=0
