@@ -127,6 +127,7 @@ Managed tmux config (from `setup_zsh.sh`):
 | `Ctrl+b` | tmux prefix (unchanged default) |
 | `Prefix + r` | Reload `~/.tmux.conf` |
 | `Prefix + [` | Enter copy mode (Vim keys enabled) |
+| `Prefix + u` | Open URL picker — fzf menu of all URLs in current pane (reassembles wrapped/split URLs) |
 | Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` / `Enter` in copy mode | Copy to clipboard via `wl-copy` or `xclip` when available |
 | Mouse mode | Enabled |
