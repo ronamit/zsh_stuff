@@ -14,7 +14,10 @@
       "WebFetch(domain:sebastiano.tronto.net)",
       "WebFetch(domain:www.medo64.com)",
       "WebFetch(domain:atomicules.co.uk)",
-      "Read(//home/rona/**)"
+      "Read(//home/rona/**)",
+      "Bash(bash setup_zsh.sh)",
+      "Bash(tmux source-file:*)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
