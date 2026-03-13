@@ -23,7 +23,7 @@ SSH_MARKER_BEGIN="# >>> zsh_stuff ssh keepalive >>>"
 SSH_MARKER_END="# <<< zsh_stuff ssh keepalive <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
-BACKUP_DIR="$HOME/.zsh_backups"
+BACKUP_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/backups"
 STEP=0
 
 # OS detection

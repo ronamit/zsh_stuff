@@ -118,17 +118,18 @@ zstyle ':completion:*' list-dirs-first true
 zstyle ':completion:*:cd:*' tag-order local-directories directory-stack path-directories
 zstyle ':completion:*' ignore-parents parent pwd
 
-# Completion cache (makes repeated completions instant)
-[[ -d "$HOME/.zsh/cache" ]] || mkdir -p "$HOME/.zsh/cache"
+# Completion cache (makes repeated completions instant). XDG cache dir.
+_zsh_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+[[ -d "$_zsh_cache" ]] || mkdir -p "$_zsh_cache" >/dev/null 2>&1
 zstyle ':completion:*' use-cache on
-zstyle ':completion:*' cache-path "$HOME/.zsh/cache"
+zstyle ':completion:*' cache-path "$_zsh_cache"
 
 # kill: color PIDs and show process info
 zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 # SSH/SCP: cache hostnames from known_hosts + ssh config to keep startup fast.
-_ssh_cache_file="$HOME/.zsh/cache/ssh_hosts"
+_ssh_cache_file="$_zsh_cache/ssh_hosts"
 _refresh_ssh_hosts_cache=0
 [[ ! -f "$_ssh_cache_file" ]] && _refresh_ssh_hosts_cache=1
 [[ -r ~/.ssh/known_hosts && ~/.ssh/known_hosts -nt "$_ssh_cache_file" ]] && _refresh_ssh_hosts_cache=1
@@ -151,7 +152,7 @@ _ssh_hosts=()
 if (( ${#_ssh_hosts} )); then
     zstyle ':completion:*:(ssh|scp|rsync):*' hosts $_ssh_hosts
 fi
-unset _ssh_hosts _ssh_cache_file _refresh_ssh_hosts_cache
+unset _ssh_hosts _ssh_cache_file _refresh_ssh_hosts_cache _zsh_cache
 
 # ── Environment ──────────────────────────────────────────────────────
 
@@ -497,8 +498,9 @@ alias reload='source ~/.zshrc && echo "✓ zsh config reloaded"'
 # ── History ──────────────────────────────────────────────────────────
 
 # Use XDG State directory when available (persistent history per spec).
+# Create dir with output suppressed so p10k instant prompt is not triggered.
 _zsh_state="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
-[[ -d "$_zsh_state" ]] || mkdir -p "$_zsh_state"
+[[ -d "$_zsh_state" ]] || mkdir -p "$_zsh_state" >/dev/null 2>&1
 HISTFILE="${_zsh_state}/history"
 unset _zsh_state
 
