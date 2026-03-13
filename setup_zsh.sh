@@ -378,10 +378,10 @@ set -g set-clipboard on
 set -gq allow-passthrough on
 set -g xterm-keys on
 set -g status-position top
-set -qas terminal-features ',*:RGB'
-set -qas terminal-features ',*:extkeys'
-set -qas terminal-features ',*:hyperlinks'
-set -qga terminal-overrides ',*:Tc'
+set -as terminal-features ',*:RGB'
+set -as terminal-features ',*:extkeys'
+set -as terminal-features ',*:hyperlinks'
+set -ga terminal-overrides ',*:Tc'
 bind r source-file ~/.tmux.conf
 
 # Vim copy-mode
@@ -393,12 +393,18 @@ bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
 bind-key -T copy-mode-vi Enter send-keys -X copy-selection-and-cancel
 bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
 
-if-shell 'command -v wl-copy >/dev/null 2>&1' 'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel wl-copy'
-if-shell 'command -v wl-copy >/dev/null 2>&1' 'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel wl-copy'
-if-shell 'command -v wl-copy >/dev/null 2>&1' 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel wl-copy'
-if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' 'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
-if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' 'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
-if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' 'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+if-shell 'command -v wl-copy >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell 'command -v wl-copy >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell 'command -v wl-copy >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel wl-copy'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
+if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
+  'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 
 # URL picker: Prefix+u opens fzf menu of all URLs visible in current pane.
 # capture-pane -J joins wrapped lines first, so split URLs are reassembled.
