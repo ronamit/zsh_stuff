@@ -705,15 +705,16 @@ _tab_accept_or_complete() {
     fi
 
     if [[ "$BUFFER" != "$_before_buffer" || $CURSOR -ne $_before_cursor ]]; then
-        # Autosuggestion was accepted — append / if last word is a directory.
-        # Extract the trailing path token (everything after the last unquoted space).
+        # Autosuggestion was accepted — append / if last word is a directory,
+        # then immediately show completions inside that directory.
         local _tail="${BUFFER##*[[:space:]]}"
         if [[ -n "$_tail" && "$BUFFER" != */ ]]; then
-            # Expand ~ to $HOME for the directory test
             local _expanded="${_tail/#\~/$HOME}"
             if [[ -d "$_expanded" ]]; then
                 BUFFER="${BUFFER}/"
                 CURSOR=${#BUFFER}
+                _auto_list_last_buffer=""
+                zle list-choices
             fi
         fi
         return 0
