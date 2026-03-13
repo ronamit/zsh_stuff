@@ -426,11 +426,15 @@ EOF
 
 if [ -f "$TMUX_CONF" ]; then
     if grep -qF "$TMUX_MARKER_BEGIN" "$TMUX_CONF" && grep -qF "$TMUX_MARKER_END" "$TMUX_CONF"; then
-        awk -v start="$TMUX_MARKER_BEGIN" -v end="$TMUX_MARKER_END" -v block="$TMUX_BLOCK" '
-            $0 == start { print block; in_block=1; next }
+        # Use a temp file for the replacement block so awk doesn't mangle backslashes via -v.
+        _tmux_block_tmp=$(mktemp)
+        printf '%s\n' "$TMUX_BLOCK" > "$_tmux_block_tmp"
+        awk -v start="$TMUX_MARKER_BEGIN" -v end="$TMUX_MARKER_END" -v bfile="$_tmux_block_tmp" '
+            $0 == start { while ((getline line < bfile) > 0) print line; close(bfile); in_block=1; next }
             $0 == end   { in_block=0; next }
             !in_block   { print }
         ' "$TMUX_CONF" > "$TMUX_CONF.tmp"
+        rm -f "$_tmux_block_tmp"
         mv "$TMUX_CONF.tmp" "$TMUX_CONF"
         echo "  ✓ Updated managed tmux block"
     else
@@ -460,11 +464,14 @@ EOF
 
 if [ -f "$SSH_CONFIG" ]; then
     if grep -qF "$SSH_MARKER_BEGIN" "$SSH_CONFIG" && grep -qF "$SSH_MARKER_END" "$SSH_CONFIG"; then
-        awk -v start="$SSH_MARKER_BEGIN" -v end="$SSH_MARKER_END" -v block="$SSH_BLOCK" '
-            $0 == start { print block; in_block=1; next }
+        _ssh_block_tmp=$(mktemp)
+        printf '%s\n' "$SSH_BLOCK" > "$_ssh_block_tmp"
+        awk -v start="$SSH_MARKER_BEGIN" -v end="$SSH_MARKER_END" -v bfile="$_ssh_block_tmp" '
+            $0 == start { while ((getline line < bfile) > 0) print line; close(bfile); in_block=1; next }
             $0 == end   { in_block=0; next }
             !in_block   { print }
         ' "$SSH_CONFIG" > "$SSH_CONFIG.tmp"
+        rm -f "$_ssh_block_tmp"
         mv "$SSH_CONFIG.tmp" "$SSH_CONFIG"
         echo "  ✓ Updated managed SSH keepalive block"
     else
