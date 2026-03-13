@@ -24,7 +24,7 @@ Full shortcuts reference (git, tmux, Python, search, keys): [ZSH_SHORTCUTS_REFER
 - **macOS**: installs CLI tools via Homebrew (same list).
 - Configures `delta` as the git pager if installed (`git diff`, `git log -p`, `git show` get syntax highlighting).
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
-- Configures tmux defaults including a status bar showing session name, load average, RAM usage, and time.
+- Configures tmux defaults including a status bar showing session name, CPU%, RAM usage, GPU% (if nvidia-smi present), and time.
 - Creates `~/.local/bin/tmux-status` helper script used by the tmux status bar.
 - Sets global git aliases: `git sw` (`switch`) and `git swc` (`switch --create`).
 - Backs up existing `~/.zshrc` to `~/.zsh_backups/` and installs from `.zshrc.template.sh`.

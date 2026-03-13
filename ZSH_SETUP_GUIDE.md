@@ -24,7 +24,7 @@ Major setup actions performed by the installer:
 - Installs common CLI tools (`fzf`, `fd`, `bat`, `ripgrep`, `tree`, `tmux`, `lsd`, `zoxide`, `lazygit`, `fastfetch`, etc.).
 - Configures `delta` as the git pager if installed — `git diff`, `git log -p`, and `git show` get syntax highlighting automatically.
 - Installs Hack Nerd Font files.
-- Applies managed tmux defaults in `~/.tmux.conf`, including a status bar (session name, load average, RAM, time).
+- Applies managed tmux defaults in `~/.tmux.conf`, including a status bar (session name, CPU%, RAM, GPU% if nvidia-smi present, time).
 - Creates `~/.local/bin/tmux-status` helper script for the status bar.
 - Backs up and replaces your existing `~/.zshrc` with the project config, and preserves/creates `~/.zshrc.local`.
 - Sets zsh as default shell (with `.bashrc` fallback) and adds global git aliases (`git sw`, `git swc`).
@@ -42,7 +42,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 - **macOS**: installs CLI tools via Homebrew (same list).
 - Configures `delta` as the git pager if installed — no command changes needed, it just replaces the pager for `git diff`, `git log -p`, `git show`.
 - Installs Hack Nerd Font (Linux: `~/.local/share/fonts`; macOS: Homebrew cask or `~/Library/Fonts`).
-- Adds a managed tmux config block to `~/.tmux.conf`, including a status bar with session name, load average, RAM, and time.
+- Adds a managed tmux config block to `~/.tmux.conf`, including a status bar with session name, CPU%, RAM, GPU% (if nvidia-smi present), and time.
 - Creates `~/.local/bin/tmux-status` — the helper script powering the tmux status bar (works on Linux and macOS).
 - Backs up your existing `~/.zshrc` to `~/.zsh_backups/` and replaces it from `.zshrc.template.sh`.
 - Ensures `~/.zshenv` has `skip_global_compinit=1` (Ubuntu compatibility).
