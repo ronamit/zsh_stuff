@@ -1136,6 +1136,20 @@ _bracketed_paste_with_autolist() {
 }
 zle -N _bracketed_paste_with_autolist
 
+_forward_char_with_autolist() {
+    zle .forward-char
+    _auto_list_last_buffer=""
+    zle _maybe_auto_list_choices
+}
+zle -N _forward_char_with_autolist
+
+_forward_word_with_autolist() {
+    zle .forward-word
+    _auto_list_last_buffer=""
+    zle _maybe_auto_list_choices
+}
+zle -N _forward_word_with_autolist
+
 _autolist_is_enabled() {
     local _v="${ZSH_AUTOLIST_ON_TYPE:-1}"
     _v="${_v:l}"
@@ -1148,6 +1162,8 @@ _apply_autolist_mode() {
         zle -N magic-space _magic_space_with_autolist
         zle -N accept-line _accept_line_with_autolist_reset
         zle -N bracketed-paste _bracketed_paste_with_autolist
+        zle -N forward-char _forward_char_with_autolist
+        zle -N forward-word _forward_word_with_autolist
     else
         if (( $+widgets[autosuggest-self-insert] )); then
             zle -A autosuggest-self-insert self-insert
@@ -1169,6 +1185,8 @@ _apply_autolist_mode() {
         elif (( $+widgets[.bracketed-paste] )); then
             zle -A .bracketed-paste bracketed-paste
         fi
+        zle -A .forward-char forward-char
+        zle -A .forward-word forward-word
     fi
 }
 
