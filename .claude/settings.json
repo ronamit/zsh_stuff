@@ -20,7 +20,16 @@
       "Bash(echo \"exit: $?\")",
       "Read(//usr/share/zsh/**)",
       "Bash($HOME/.local/bin/tmux-status)",
-      "Bash(ls /home/rona/zsh_stuff/*.sh /home/rona/zsh_stuff/*.md)"
+      "Bash(ls /home/rona/zsh_stuff/*.sh /home/rona/zsh_stuff/*.md)",
+      "Bash(grep -r \"AWS\\\\|aws\" /home/rona/zsh_stuff --include=*.sh --include=*.md)",
+      "Bash(source ~/.zshrc)",
+      "Bash(vm status:*)",
+      "Bash(zsh -ic 'vm status')"
+    ],
+    "additionalDirectories": [
+      "/home/rona/.ssh",
+      "/home/rona/.aws",
+      "/home/rona"
     ]
   }
 }
