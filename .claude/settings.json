@@ -28,7 +28,10 @@
       "Bash(ghostty +list-fonts)",
       "WebFetch(domain:ghostty.org)",
       "WebFetch(domain:deepwiki.com)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(dpkg -l urlview)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)"
     ],
     "additionalDirectories": [
       "/home/rona/.ssh",

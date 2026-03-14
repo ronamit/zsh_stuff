@@ -414,9 +414,10 @@ if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>
 if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>&1' \
   'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"'
 
-# URL picker: Prefix+u opens fzf menu of all URLs visible in current pane.
+# URL picker: Prefix+u opens fzf menu of all URLs in current pane + scrollback.
 # capture-pane -J joins wrapped lines first, so split URLs are reassembled.
-bind-key u run-shell "tmux capture-pane -J -p | sed 's/[[:space:]]*$//' | grep -oE 'https?://[[:graph:]]+' | sed 's/[.,;:!?)\\]]+$//' | sort -u | fzf-tmux -p 80%,40% --prompt='Open URL: ' | xargs -r -I{} sh -c 'xdg-open \"{}\" 2>/dev/null || open \"{}\" 2>/dev/null'"
+# -S -5000 searches last 5000 lines of scrollback.
+bind-key u run-shell "tmux capture-pane -J -p -S -5000 | sed 's/[[:space:]]*$//' | grep -oE 'https?://[[:graph:]]+' | sed 's/[.,;:!?)\\]]+$//' | sort -u | fzf-tmux -p 80%,40% --prompt='Open URL: ' --tac | xargs -r -I{} sh -c 'xdg-open \"{}\" 2>/dev/null || open \"{}\" 2>/dev/null'"
 
 # Status bar
 set -g status-style 'bg=colour235,fg=colour7'
