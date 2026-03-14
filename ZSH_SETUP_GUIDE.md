@@ -123,18 +123,67 @@ echo 'export ZSH_AUTOLIST_CD_EMPTY_MAX=20' >> ~/.zshrc.local
 source ~/.zshrc
 ```
 
-## VPN-Aware SSH Retry Prompt
+## Smart SSH Wrapper
 
-`ssh` is wrapped in interactive shells:
-- Runs `ssh` normally.
-- If it fails, prompts whether to run `vpn-connect`.
-- On confirmation, runs `vpn-connect` (or `~/vpn/vpn-connect.sh`) and retries once.
+`ssh` is wrapped in interactive shells with these features:
 
-Example:
+- **Auto-timeout**: Adds `ConnectTimeout=10` so SSH won't hang forever on unreachable hosts.
+- **EC2 detection**: If the target matches your configured EC2 instance and SSH fails, shows the instance state and offers to run `vm connect` (auto-login, auto-start, SSH).
+- **VPN retry**: For non-EC2 hosts, prompts whether to run `vpn-connect` and retries once.
+
+## EC2 VM Helper (`vm` command)
+
+One-command access to an AWS EC2 dev instance. Handles SSO login, instance start/stop, and SSH — no need to touch the AWS console.
+
+### Setup
+
+Requires the AWS CLI (`aws`). The `vm` command is only available when `aws` is installed.
+
+**Step 1: Configure AWS SSO** (one-time, if your org uses SSO):
 
 ```bash
-ssh my-remote-host
+aws configure sso
 ```
+
+You will need your SSO start URL (e.g. `https://your-org.awsapps.com/start`), region, account ID, and role name. This creates `~/.aws/config`.
+
+**Step 2: Add instance config to `~/.zshrc.local`:**
+
+```bash
+export EC2_INSTANCE_ID="i-0abc123..."        # your instance ID (find in AWS console)
+export EC2_REGION="us-east-2"                 # AWS region
+export EC2_SSH_USER="ubuntu"                  # SSH username on the instance
+export EC2_SSH_KEY="$HOME/.ssh/my-key.pem"    # path to your SSH key
+export EC2_AWS_PROFILE="my-profile"           # AWS CLI profile name (optional)
+```
+
+**Step 3: Reload and test:**
+
+```bash
+source ~/.zshrc
+vm status
+```
+
+If you just type `vm` without any config, it prints the setup instructions above.
+
+### Usage
+
+| Command | Action |
+|---|---|
+| `vm` | Check AWS creds (refresh if expired), start instance if stopped, SSH in |
+| `vm status` | Show instance state and IP |
+| `vm start` | Start the instance |
+| `vm stop` | Stop the instance |
+| `vm ip` | Print the public IP |
+
+### How it solves common problems
+
+| Problem | What `vm` does |
+|---|---|
+| AWS SSO token expired | Automatically opens browser for SSO login |
+| Instance is stopped | Starts it and waits for SSH to be ready |
+| Forgot the IP | Looks it up via AWS API |
+| SSH hangs (unreachable host) | `ssh` wrapper times out in 10s and offers `vm connect` |
 
 ## Updating
 

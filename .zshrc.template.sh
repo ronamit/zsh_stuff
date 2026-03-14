@@ -319,20 +319,81 @@ ssh-fix-colors() {
         || echo "Failed — you may need to install ncurses on the remote"
 }
 
-# SSH wrapper for VPN-required hosts.
-# Behavior:
-#   - Runs ssh as usual.
-#   - If ssh fails in an interactive terminal, asks whether to run vpn-connect.
-#   - On confirmation, runs vpn-connect and retries ssh once.
+# Smart SSH wrapper.
+# Features:
+#   - Adds ConnectTimeout=10 so SSH won't hang forever on unreachable hosts.
+#   - On failure, if target matches EC2 instance, offers `vm connect` (auto-login,
+#     auto-start, fresh IP lookup).
+#   - Otherwise, offers vpn-connect and retry.
 ssh() {
-    command ssh "$@"
+    # ── Add ConnectTimeout if user didn't set one ──
+    local has_timeout=0
+    local arg
+    for arg in "$@"; do
+        [[ "$arg" == *ConnectTimeout* ]] && has_timeout=1
+    done
+
+    local -a ssh_args=("$@")
+    (( has_timeout )) || ssh_args=(-o ConnectTimeout=10 "$@")
+
+    command ssh "${ssh_args[@]}"
     local ssh_rc=$?
     (( ssh_rc == 0 )) && return 0
 
+    # Non-interactive — just return the exit code.
     if [[ ! -t 0 || ! -t 1 ]]; then
         return "$ssh_rc"
     fi
 
+    # ── Check if the target is the configured EC2 instance ──
+    if [[ -n "${EC2_INSTANCE_ID:-}" ]] && command -v aws &>/dev/null; then
+        # Extract the target host from ssh args (skip flags and their values).
+        local target="" skip_next=0
+        for arg in "$@"; do
+            if (( skip_next )); then skip_next=0; continue; fi
+            case "$arg" in
+                -[bcDEeFIiJLlmOopQRSWw]) skip_next=1 ;;
+                -*) ;;
+                *) [[ -z "$target" ]] && target="$arg" ;;
+            esac
+        done
+
+        # Resolve the hostname to an IP via ssh config, then compare to EC2 IP.
+        local resolved_ip
+        resolved_ip=$(command ssh -G "${target%%@*}" 2>/dev/null \
+            | awk '$1=="hostname"{print $2; exit}')
+        [[ "$target" == *@* ]] && resolved_ip=$(command ssh -G "${target#*@}" 2>/dev/null \
+            | awk '$1=="hostname"{print $2; exit}')
+
+        local ec2_ip
+        ec2_ip=$(aws ec2 describe-instances \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --profile "${EC2_AWS_PROFILE:-${AWS_PROFILE:-default}}" \
+            --region "${EC2_REGION:-us-east-2}" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text 2>/dev/null)
+
+        if [[ "$resolved_ip" == "$ec2_ip" || "$target" == *"$ec2_ip"* ]]; then
+            local state
+            state=$(aws ec2 describe-instances \
+                --instance-ids "$EC2_INSTANCE_ID" \
+                --profile "${EC2_AWS_PROFILE:-${AWS_PROFILE:-default}}" \
+                --region "${EC2_REGION:-us-east-2}" \
+                --query 'Reservations[0].Instances[0].State.Name' \
+                --output text 2>/dev/null)
+            echo ""
+            echo "This looks like your EC2 instance (state: ${state:-unknown})."
+            printf "Run 'vm connect' instead? [Y/n] "
+            local reply
+            read -r reply
+            case "${reply:l}" in
+                ""|y|yes) vm connect; return $? ;;
+            esac
+            return "$ssh_rc"
+        fi
+    fi
+
+    # ── Fallback: offer VPN connect ──
     printf "ssh failed (exit %d). Run vpn-connect and retry? [y/N] " "$ssh_rc"
     local reply
     read -r reply
@@ -346,7 +407,7 @@ ssh() {
                 echo "ssh wrapper: vpn-connect is not available."
                 return "$ssh_rc"
             fi
-            command ssh "$@"
+            command ssh "${ssh_args[@]}"
             return $?
             ;;
         *)
@@ -354,6 +415,139 @@ ssh() {
             ;;
     esac
 }
+
+# ── EC2 VM helper ────────────────────────────────────────────────────
+# One-command access to an AWS EC2 dev instance.
+# Configure in ~/.zshrc.local:
+#   export EC2_INSTANCE_ID="i-0abc123..."
+#   export EC2_REGION="us-east-2"
+#   export EC2_SSH_USER="ubuntu"
+#   export EC2_SSH_KEY="$HOME/.ssh/my-key.pem"
+#   export EC2_AWS_PROFILE="my-profile"      # optional, defaults to $AWS_PROFILE
+if command -v aws &>/dev/null; then
+vm() {
+    local instance_id="${EC2_INSTANCE_ID:-}"
+    local region="${EC2_REGION:-us-east-2}"
+    local ssh_user="${EC2_SSH_USER:-ubuntu}"
+    local ssh_key="${EC2_SSH_KEY:-}"
+    local profile="${EC2_AWS_PROFILE:-${AWS_PROFILE:-default}}"
+    local subcmd="${1:-connect}"
+
+    if [[ -z "$instance_id" ]]; then
+        echo "vm: EC2 instance not configured."
+        echo ""
+        echo "Add these to ~/.zshrc.local:"
+        echo "  export EC2_INSTANCE_ID=\"i-0abc123...\"   # your instance ID"
+        echo "  export EC2_REGION=\"us-east-2\"            # AWS region"
+        echo "  export EC2_SSH_USER=\"ubuntu\"              # SSH username"
+        echo "  export EC2_SSH_KEY=\"\$HOME/.ssh/key.pem\"  # path to SSH key"
+        echo "  export EC2_AWS_PROFILE=\"my-profile\"       # AWS CLI profile (optional)"
+        echo ""
+        echo "Then set up AWS SSO (if your org uses it):"
+        echo "  aws configure sso"
+        echo ""
+        echo "Reload with: source ~/.zshrc"
+        return 1
+    fi
+
+    if [[ -z "$ssh_key" ]]; then
+        echo "vm: EC2_SSH_KEY not set. Add to ~/.zshrc.local:"
+        echo "  export EC2_SSH_KEY=\"\$HOME/.ssh/your-key.pem\""
+        return 1
+    fi
+
+    _vm_ensure_aws() {
+        if aws sts get-caller-identity --profile "$profile" &>/dev/null; then
+            return 0
+        fi
+        echo "AWS session expired. Opening SSO login..."
+        aws sso login --profile "$profile" || { echo "SSO login failed."; return 1; }
+    }
+
+    _vm_state() {
+        aws ec2 describe-instances \
+            --instance-ids "$instance_id" \
+            --profile "$profile" --region "$region" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text 2>/dev/null
+    }
+
+    _vm_ip() {
+        aws ec2 describe-instances \
+            --instance-ids "$instance_id" \
+            --profile "$profile" --region "$region" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text 2>/dev/null
+    }
+
+    case "$subcmd" in
+        status)
+            _vm_ensure_aws || return 1
+            local state=$(_vm_state)
+            local ip=$(_vm_ip)
+            echo "Instance: $instance_id ($region)"
+            echo "State:    $state"
+            [[ "$ip" != "None" && -n "$ip" ]] && echo "IP:       $ip"
+            ;;
+        start)
+            _vm_ensure_aws || return 1
+            local state=$(_vm_state)
+            if [[ "$state" == "running" ]]; then
+                echo "Already running. IP: $(_vm_ip)"
+                return 0
+            fi
+            echo "Starting instance..."
+            aws ec2 start-instances --instance-ids "$instance_id" \
+                --profile "$profile" --region "$region" >/dev/null
+            echo "Waiting for instance to start..."
+            aws ec2 wait instance-running --instance-ids "$instance_id" \
+                --profile "$profile" --region "$region"
+            echo "Running. IP: $(_vm_ip)"
+            ;;
+        stop)
+            _vm_ensure_aws || return 1
+            echo "Stopping instance..."
+            aws ec2 stop-instances --instance-ids "$instance_id" \
+                --profile "$profile" --region "$region" >/dev/null
+            echo "Stop initiated."
+            ;;
+        ip)
+            _vm_ensure_aws || return 1
+            _vm_ip
+            ;;
+        connect|ssh)
+            _vm_ensure_aws || return 1
+            local state=$(_vm_state)
+            if [[ "$state" == "stopped" ]]; then
+                echo "Instance is stopped. Starting it..."
+                aws ec2 start-instances --instance-ids "$instance_id" \
+                    --profile "$profile" --region "$region" >/dev/null
+                echo "Waiting for instance to boot..."
+                aws ec2 wait instance-running --instance-ids "$instance_id" \
+                    --profile "$profile" --region "$region"
+                echo "Waiting for SSH to be ready..."
+                aws ec2 wait instance-status-ok --instance-ids "$instance_id" \
+                    --profile "$profile" --region "$region"
+            elif [[ "$state" != "running" ]]; then
+                echo "Instance is $state — cannot connect."
+                return 1
+            fi
+            local ip=$(_vm_ip)
+            echo "Connecting to $ip..."
+            command ssh -i "$ssh_key" -o ConnectTimeout=10 "$ssh_user@$ip"
+            ;;
+        *)
+            echo "Usage: vm [connect|status|start|stop|ip]"
+            echo ""
+            echo "  connect  Connect via SSH (default). Starts instance if stopped."
+            echo "  status   Show instance state and IP."
+            echo "  start    Start the instance."
+            echo "  stop     Stop the instance."
+            echo "  ip       Print the public IP."
+            ;;
+    esac
+}
+fi
 
 # ── Aliases: Git (extras beyond Oh My Zsh git plugin) ────────────────
 

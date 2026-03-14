@@ -52,7 +52,8 @@ bindkey | less
 | `path` | Print one `PATH` entry per line |
 | `myip` | Public IP (`curl ifconfig.me`) |
 | `localip` | First local IP |
-| `ssh HOST [ARGS...]` | Wrapped SSH: on failure in interactive shell, asks to run `vpn-connect` and retries once |
+| `ssh HOST [ARGS...]` | Smart SSH: auto-timeout (10s), EC2 instance detection with `vm connect` offer, VPN retry fallback |
+| `vm` | SSH to EC2 instance (auto-login, auto-start). Subcommands: `status`, `start`, `stop`, `ip` |
 | `reload` | Reload `~/.zshrc` |
 | `f` | Open current dir in system file manager |
 | `mkcd NAME` | Create dir and enter it |

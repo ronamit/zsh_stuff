@@ -157,6 +157,13 @@ create_zshrc_local_template() {
 # export GITHUB_TOKEN="ghp_xxxxx"
 # export OPENAI_API_KEY="sk-xxxxx"
 # export HF_TOKEN="hf_xxxxx"
+
+# ── EC2 VM helper (type `vm` for usage) ──
+# export EC2_INSTANCE_ID="i-0abc123..."
+# export EC2_REGION="us-east-2"
+# export EC2_SSH_USER="ubuntu"
+# export EC2_SSH_KEY="$HOME/.ssh/my-key.pem"
+# export EC2_AWS_PROFILE="my-profile"
 EOF
     echo "  ✓ Created ~/.zshrc.local template"
 }
