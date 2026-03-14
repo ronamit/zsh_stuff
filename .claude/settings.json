@@ -24,12 +24,17 @@
       "Bash(grep -r \"AWS\\\\|aws\" /home/rona/zsh_stuff --include=*.sh --include=*.md)",
       "Bash(source ~/.zshrc)",
       "Bash(vm status:*)",
-      "Bash(zsh -ic 'vm status')"
+      "Bash(zsh -ic 'vm status')",
+      "Bash(ghostty +list-fonts)",
+      "WebFetch(domain:ghostty.org)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(gh issue:*)"
     ],
     "additionalDirectories": [
       "/home/rona/.ssh",
       "/home/rona/.aws",
-      "/home/rona"
+      "/home/rona",
+      "/home/rona/.config/ghostty"
     ]
   }
 }
