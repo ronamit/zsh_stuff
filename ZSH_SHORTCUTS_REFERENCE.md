@@ -54,6 +54,7 @@ bindkey | less
 | `localip` | First local IP |
 | `ssh HOST [ARGS...]` | Smart SSH: auto-timeout (10s), EC2 instance detection with `vm connect` offer, VPN retry fallback |
 | `vm` | SSH to EC2 instance (auto-login, auto-start). Subcommands: `status`, `start`, `stop`, `ip` |
+| `aws-login` | Refresh AWS SSO credentials (`aws sso login`) |
 | `reload` | Reload `~/.zshrc` |
 | `f` | Open current dir in system file manager |
 | `mkcd NAME` | Create dir and enter it |

@@ -305,6 +305,9 @@ fi
 [[ -x "$HOME/vpn/vpn-disconnect.sh" ]] && alias vpn-disconnect='bash ~/vpn/vpn-disconnect.sh'
 [[ -x "$HOME/vpn/vpn-status.sh" ]]     && alias vpn-status='bash ~/vpn/vpn-status.sh'
 
+# AWS SSO login shortcut
+command -v aws &>/dev/null && alias aws-login='aws sso login'
+
 # Push local terminfo to a remote server so SSH preserves full color support.
 # Usage: ssh-fix-colors user@host
 ssh-fix-colors() {

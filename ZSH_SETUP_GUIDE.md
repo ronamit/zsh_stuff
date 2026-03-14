@@ -175,6 +175,7 @@ If you just type `vm` without any config, it prints the setup instructions above
 | `vm start` | Start the instance |
 | `vm stop` | Stop the instance |
 | `vm ip` | Print the public IP |
+| `aws-login` | Refresh AWS SSO credentials (shortcut for `aws sso login`) |
 
 ### How it solves common problems
 
