@@ -23,7 +23,8 @@ SSH_MARKER_BEGIN="# >>> zsh_stuff ssh defaults >>>"
 SSH_MARKER_END="# <<< zsh_stuff ssh defaults <<<"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC_TEMPLATE="$SCRIPT_DIR/.zshrc.template.sh"
-BACKUP_DIR="$HOME/.zsh_backups"
+BACKUP_BASE="$HOME/.zsh_backups"
+BACKUP_DIR="$BACKUP_BASE/$(date +%Y%m%d_%H%M%S)"
 STEP=0
 
 # OS detection
@@ -419,6 +420,21 @@ if-shell '! command -v wl-copy >/dev/null 2>&1 && command -v xclip >/dev/null 2>
 # -S -5000 searches last 5000 lines of scrollback.
 bind-key u run-shell "tmux capture-pane -J -p -S -5000 | sed 's/[[:space:]]*$//' | grep -oE 'https?://[[:graph:]]+' | sed 's/[.,;:!?)\\]]+$//' | sort -u | fzf-tmux -p 80%,40% --prompt='Open URL: ' --tac | xargs -r -I{} sh -c 'xdg-open \"{}\" 2>/dev/null || open \"{}\" 2>/dev/null'"
 
+# ── TPM Plugins ──
+# tmux-sensible: sensible defaults everyone agrees on
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'
+# tmux-open: highlight URL/path in copy mode, press 'o' to open, 'Ctrl-o' for $EDITOR
+set -g @plugin 'tmux-plugins/tmux-open'
+# tmux-yank: copy to system clipboard from copy mode (y) and command line (Prefix+y)
+set -g @plugin 'tmux-plugins/tmux-yank'
+# tmux-resurrect: Prefix+Ctrl-s to save, Prefix+Ctrl-r to restore sessions
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @resurrect-capture-pane-contents 'on'
+
+# Initialize TPM (keep this line at the very bottom of the managed block)
+run-shell '~/.tmux/plugins/tpm/tpm'
+
 # Status bar
 set -g status-style 'bg=colour235,fg=colour7'
 set -g status-interval 5
@@ -435,6 +451,9 @@ EOF
 )
 
 if [ -f "$TMUX_CONF" ]; then
+    mkdir -p "$BACKUP_DIR"
+    cp "$TMUX_CONF" "$BACKUP_DIR/.tmux.conf"
+    echo "  ✓ Backup → $BACKUP_DIR/.tmux.conf"
     if grep -qF "$TMUX_MARKER_BEGIN" "$TMUX_CONF" && grep -qF "$TMUX_MARKER_END" "$TMUX_CONF"; then
         # Use a temp file for the replacement block so awk doesn't mangle backslashes via -v.
         _tmux_block_tmp=$(mktemp)
@@ -456,6 +475,31 @@ else
     echo "  ✓ Created $TMUX_CONF"
 fi
 
+# ── TPM (Tmux Plugin Manager) ──────────────────────────────────────
+
+step "Installing Tmux Plugin Manager (TPM)..."
+TPM_DIR="$HOME/.tmux/plugins/tpm"
+if [ -d "$TPM_DIR" ]; then
+    echo "  ✓ TPM already installed"
+else
+    if git clone --depth=1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
+        echo "  ✓ TPM installed"
+    else
+        echo "  ✗ Failed to clone TPM"
+        exit 1
+    fi
+fi
+
+# Install/update TPM plugins non-interactively
+if [ -x "$TPM_DIR/bin/install_plugins" ]; then
+    echo "  Installing tmux plugins via TPM..."
+    if "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1; then
+        echo "  ✓ Tmux plugins installed"
+    else
+        echo "  ⚠ TPM plugin install had issues — run Prefix+I inside tmux to retry"
+    fi
+fi
+
 # ── SSH keepalive defaults ───────────────────────────────────────────
 
 step "Configuring SSH defaults (keepalive + color forwarding)..."
@@ -475,6 +519,9 @@ EOF
 )
 
 if [ -f "$SSH_CONFIG" ]; then
+    mkdir -p "$BACKUP_DIR"
+    cp "$SSH_CONFIG" "$BACKUP_DIR/ssh_config"
+    echo "  ✓ Backup → $BACKUP_DIR/ssh_config"
     if grep -qF "$SSH_MARKER_BEGIN" "$SSH_CONFIG" && grep -qF "$SSH_MARKER_END" "$SSH_CONFIG"; then
         _ssh_block_tmp=$(mktemp)
         printf '%s\n' "$SSH_BLOCK" > "$_ssh_block_tmp"
@@ -705,7 +752,7 @@ step "Installing ~/.zshrc from template..."
 BACKUP_PATH=""
 if [ -f "$HOME/.zshrc" ]; then
     if mkdir -p "$BACKUP_DIR"; then
-        BACKUP_PATH="$BACKUP_DIR/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+        BACKUP_PATH="$BACKUP_DIR/.zshrc"
     else
         echo "  ✗ Failed to create backup directory: $BACKUP_DIR"
         exit 1

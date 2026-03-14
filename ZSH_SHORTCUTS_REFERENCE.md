@@ -132,6 +132,12 @@ Managed tmux config (from `setup_zsh.sh`):
 | `Prefix + u` | Open URL picker — fzf menu of all URLs in current pane (reassembles wrapped/split URLs) |
 | Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` / `Enter` in copy mode | Copy to clipboard via `wl-copy` or `xclip` when available |
+| `o` in copy mode | Open highlighted URL/file path (tmux-open) |
+| `Ctrl+o` in copy mode | Open highlighted file in `$EDITOR` (tmux-open) |
+| `Prefix + Ctrl+s` | Save session layout + pane contents (tmux-resurrect) |
+| `Prefix + Ctrl+r` | Restore saved session (tmux-resurrect) |
+| `Prefix + I` | Install new TPM plugins |
+| `Prefix + U` | Update TPM plugins |
 | Mouse mode | Enabled |
 | Status bar | Top — session + hostname (left); CPU%, RAM, GPU% (if nvidia-smi), time (right); updates every 5s |
 | Window/pane index | Starts at `1` |

@@ -25,6 +25,7 @@ Major setup actions performed by the installer:
 - Configures `delta` as the git pager if installed — `git diff`, `git log -p`, and `git show` get syntax highlighting automatically.
 - Installs Hack Nerd Font files.
 - Applies managed tmux defaults in `~/.tmux.conf`, including a status bar (session name, CPU%, RAM, GPU% if nvidia-smi present, time).
+- Installs [TPM](https://github.com/tmux-plugins/tpm) and tmux plugins: tmux-sensible, tmux-open, tmux-yank, tmux-resurrect.
 - Creates `~/.local/bin/tmux-status` helper script for the status bar.
 - Backs up and replaces your existing `~/.zshrc` with the project config, and preserves/creates `~/.zshrc.local`.
 - Sets zsh as default shell (with `.bashrc` fallback) and adds global git aliases (`git sw`, `git swc`).
@@ -95,8 +96,16 @@ For all daily shortcuts (especially git workflows), see:
 | Mouse drag + release in pane | Select and copy to clipboard (no `Shift` needed) |
 | `y` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
 | `Enter` in copy mode | Copy selection and send to clipboard (`wl-copy` or `xclip`) |
+| `o` in copy mode | Open highlighted URL/file (tmux-open plugin) |
+| `Ctrl+o` in copy mode | Open highlighted file in `$EDITOR` (tmux-open plugin) |
+| `Prefix + Ctrl+s` | Save tmux session (tmux-resurrect) |
+| `Prefix + Ctrl+r` | Restore tmux session (tmux-resurrect) |
+| `Prefix + I` | Install new TPM plugins |
+| `Prefix + U` | Update TPM plugins |
 
 Additional defaults: mouse mode on, history increased, window/pane numbering starts at `1`, status bar at top, truecolor enabled (`RGB` with `Tc` compatibility), OSC 8 hyperlinks enabled, and passthrough allowed for compatible terminals/apps.
+
+**Plugins** (managed by [TPM](https://github.com/tmux-plugins/tpm)): tmux-sensible (sensible defaults), tmux-open (open URLs/files from copy mode), tmux-yank (system clipboard integration), tmux-resurrect (save/restore sessions across reboots).
 
 **Status bar** (top): left shows session name + hostname; right shows CPU%, RAM, GPU% (if `nvidia-smi` is available), and time. Updates every 5 seconds via `~/.local/bin/tmux-status`.
 
