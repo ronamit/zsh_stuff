@@ -633,6 +633,20 @@ else
     echo "  - tic not found; skipping terminfo installation"
 fi
 
+# Install terminfo system-wide so sudo/root sessions also find them.
+# Without this, `sudo nano` etc. fail with "Error opening terminal: xterm-ghostty".
+for _ti_name in xterm-ghostty xterm-kitty wezterm; do
+    if infocmp "$_ti_name" &>/dev/null 2>&1; then
+        if ! sudo infocmp "$_ti_name" &>/dev/null 2>&1; then
+            echo "  Installing $_ti_name terminfo system-wide (for sudo)..."
+            infocmp -x "$_ti_name" | sudo tic -x - 2>/dev/null \
+                && echo "  ✓ $_ti_name available for root" \
+                || echo "  - Could not install $_ti_name system-wide (no sudo?)"
+        fi
+    fi
+done
+unset _ti_name
+
 # ── Tmux status helper script ────────────────────────────────────────
 
 step "Creating tmux status script..."
