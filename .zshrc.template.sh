@@ -707,6 +707,12 @@ ducks() { du -sh * 2>/dev/null | sort -hr | head -11; }
 
 # Quick reload
 alias reload='source ~/.zshrc && echo "✓ zsh config reloaded"'
+# One-command setup/update from this repo.
+zsetup() {
+    local script="$HOME/zsh_stuff/setup_zsh.sh"
+    [[ -x "$script" || -f "$script" ]] || { echo "zsetup: $script not found"; return 1; }
+    bash "$script" && exec zsh
+}
 
 # ── History ──────────────────────────────────────────────────────────
 
@@ -879,8 +885,7 @@ _down_history_or_dirs() {
 zle -N _down_history_or_dirs
 
 _tab_complete_and_autolist() {
-    # Complete current token, then refresh candidate list for the new context
-    # (e.g., after completing "dir/", immediately show its subdirectories).
+    # General Tab behavior for non-cd commands.
     if (( $+widgets[expand-or-complete] )); then
         zle expand-or-complete
     else
@@ -890,9 +895,42 @@ _tab_complete_and_autolist() {
 }
 zle -N _tab_complete_and_autolist
 
+_cd_tab_complete() {
+    # Deterministic cd drill-down: append / if dir, then run completion so list appears.
+    (( CURSOR == ${#BUFFER} )) || { zle list-choices; return 0; }
+
+    local _tail="${BUFFER##*[[:space:]]}"
+    local _expanded=""
+
+    if [[ "$_tail" == /* ]]; then
+        _expanded="$_tail"
+    elif [[ "$_tail" == ~* ]]; then
+        _expanded="${_tail/#\~/$HOME}"
+    elif [[ -n "$_tail" ]]; then
+        _expanded="$PWD/$_tail"
+    fi
+
+    if [[ -n "$_tail" && "$BUFFER" != */ && -d "$_expanded" ]]; then
+        BUFFER="${BUFFER}/"
+        CURSOR=${#BUFFER}
+    fi
+
+    _auto_list_last_buffer=""
+    # Run real completion (bypass fzf-tab so list is generated) then show list.
+    if (( $+functions[_ftb__main_complete] )); then
+        local _saved_main="${functions[_main_complete]}"
+        functions[_main_complete]="${functions[_ftb__main_complete]}"
+        zle expand-or-complete
+        functions[_main_complete]="$_saved_main"
+    else
+        zle expand-or-complete
+    fi
+    zle list-choices
+}
+zle -N _cd_tab_complete
+
 _tab_accept_or_complete() {
-    # Preserve Tab-to-accept when an autosuggestion is visible; otherwise run
-    # normal completion flow.
+    # Tab accepts autosuggestion first (for all commands including cd).
     local _before_buffer="$BUFFER"
     local -i _before_cursor=$CURSOR
 
@@ -902,10 +940,17 @@ _tab_accept_or_complete() {
 
     if [[ "$BUFFER" != "$_before_buffer" || $CURSOR -ne $_before_cursor ]]; then
         # Autosuggestion was accepted — append / if last word is a directory,
-        # then immediately show completions inside that directory.
+        # then show completions inside that directory.
         local _tail="${BUFFER##*[[:space:]]}"
         if [[ -n "$_tail" && "$BUFFER" != */ ]]; then
-            local _expanded="${_tail/#\~/$HOME}"
+            local _expanded
+            if [[ "$_tail" == /* ]]; then
+                _expanded="$_tail"
+            elif [[ "$_tail" == ~* ]]; then
+                _expanded="${_tail/#\~/$HOME}"
+            else
+                _expanded="$PWD/$_tail"
+            fi
             if [[ -d "$_expanded" ]]; then
                 BUFFER="${BUFFER}/"
                 CURSOR=${#BUFFER}
@@ -913,6 +958,13 @@ _tab_accept_or_complete() {
                 zle list-choices
             fi
         fi
+        return 0
+    fi
+
+    # No autosuggestion accepted — for cd/pushd/popd use cd-only drill-down.
+    local _cmd="${BUFFER%%[[:space:]]*}"
+    if [[ "$_cmd" == "cd" || "$_cmd" == "pushd" || "$_cmd" == "popd" ]]; then
+        zle _cd_tab_complete
         return 0
     fi
 
@@ -1268,6 +1320,25 @@ if (( _fzf_tab_loaded )); then
     zstyle ':fzf-tab:*' fzf-flags '--height=40% --layout=reverse --border'
     zstyle ':fzf-tab:*' switch-group ',' '.'
     zstyle ':fzf-tab:*' continuous-trigger '/'
+    # Enter accepts and runs the command in one keystroke (see wiki: accept-line)
+    zstyle ':fzf-tab:*' accept-line enter
+    # Group descriptions (needed for preview $group and headers)
+    zstyle ':completion:*:descriptions' format '[%d]'
+    # Previews: dirs with lsd/eza/ls, files with bat/cat (see wiki/Preview)
+    zstyle ':fzf-tab:complete:*:*' fzf-preview \
+        '[[ -d $realpath ]] && (lsd -1 --color=always $realpath 2>/dev/null || eza -1 --color=always $realpath 2>/dev/null || ls -1 $realpath 2>/dev/null) || (bat --color=always --line-range :500 $realpath 2>/dev/null || cat $realpath 2>/dev/null)'
+    zstyle ':fzf-tab:complete:*:*' fzf-min-height 8
+    # kill/ps: show full command line (see wiki/Preview)
+    zstyle ':fzf-tab:complete:(kill|ps):argument-rest' fzf-preview \
+        '[[ $group == "[process ID]" ]] && ps --pid=$word -o cmd --no-headers -w -w 2>/dev/null'
+    zstyle ':fzf-tab:complete:(kill|ps):argument-rest' fzf-flags --preview-window=down:3:wrap
+    # systemctl: show unit status (see wiki/Preview)
+    zstyle ':fzf-tab:complete:systemctl-*:*' fzf-preview 'SYSTEMD_COLORS=1 systemctl status $word 2>/dev/null'
+    # Keep cd/pushd/popd on native completion to preserve deterministic
+    # slash-free drill-down behavior handled by _cd_tab_complete.
+    zstyle ':fzf-tab:complete:cd:*' disabled-on any
+    zstyle ':fzf-tab:complete:pushd:*' disabled-on any
+    zstyle ':fzf-tab:complete:popd:*' disabled-on any
 fi
 
 if (( _zsh_syntax_highlighting_enabled )); then
