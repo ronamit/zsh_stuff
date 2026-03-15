@@ -13,6 +13,11 @@
 # Fail on undefined variables and pipe errors.
 set -uo pipefail
 
+# Apple Silicon Homebrew is not in default PATH on fresh macOS; ensure brew is available.
+if [[ "$(uname -s)" == "Darwin" && -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
 # ── Globals ──────────────────────────────────────────────────────────
 
 TMUX_CONF="$HOME/.tmux.conf"
@@ -154,6 +159,8 @@ create_zshrc_local_template() {
 # export ZSH_AUTOLIST_ON_TYPE=1   # 1=on (default), 0=off
 # Auto-open `cd ` list only when local dir count is small:
 # export ZSH_AUTOLIST_CD_EMPTY_MAX=20
+# Min characters before auto-list (reduces lag on slow filesystems):
+# export ZSH_AUTOLIST_MIN_CHARS=3
 
 # export GITHUB_TOKEN="ghp_xxxxx"
 # export OPENAI_API_KEY="sk-xxxxx"

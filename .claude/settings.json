@@ -31,7 +31,11 @@
       "Bash(gh issue:*)",
       "Bash(dpkg -l urlview)",
       "Bash(pip show:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(yes)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "additionalDirectories": [
       "/home/rona/.ssh",

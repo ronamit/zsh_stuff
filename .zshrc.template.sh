@@ -95,15 +95,8 @@ zmodload -i zsh/complist
 
 [[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
-# fzf-tab gives interactive fuzzy completion without zsh-autocomplete's
-# async completion pipeline, which can hang on heavy git completions.
-if (( _fzf_tab_loaded )); then
-    source "$_fzf_tab_plugin"
-    zstyle ':fzf-tab:*' fzf-flags '--height=40% --layout=reverse --border'
-    zstyle ':fzf-tab:*' switch-group ',' '.'
-    # Press / in the fzf-tab menu to accept a directory and immediately complete the next path component
-    zstyle ':fzf-tab:*' continuous-trigger '/'
-fi
+# fzf-tab, syntax-highlighting, and autosuggestions are sourced at the very end
+# of this file so that autosuggestions wraps the final widget set (avoids race with fzf-tab).
 
 # ══════════════════════════════════════════════════════════════════════
 # Everything below runs AFTER oh-my-zsh so our settings are not
@@ -243,8 +236,9 @@ if (( _lsd_installed )); then
 else
     alias l='ls -lFh'
     alias la='ls -lAFh'
-    # GNU ls: group dirs first + color; macOS/BSD: plain -lAh
-    if ls --group-directories-first -d . &>/dev/null 2>&1; then
+    if [[ "$OSTYPE" == darwin* ]]; then
+        alias ll='ls -lAh -FG'
+    elif ls --group-directories-first -d . &>/dev/null 2>&1; then
         alias ll='ls -lAh --group-directories-first --color=auto'
     else
         alias ll='ls -lAh'
@@ -253,13 +247,10 @@ fi
 alias lt='tree -L 2'
 alias ldot='command ls -ld .*'
 
-# Use bat for cat (plain output, no paging).
+# Use bat for cat (plain output, no paging). setup_zsh.sh symlinks batcat→bat in ~/.local/bin when needed.
 if command -v bat &>/dev/null; then
     alias cat='bat --style=plain --paging=never'
     alias catt='bat'
-elif command -v batcat &>/dev/null; then
-    alias cat='batcat --style=plain --paging=never'
-    alias catt='batcat'
 fi
 
 alias cp='cp -iv'
@@ -350,23 +341,9 @@ ssh() {
 
     # ── Check if the target is the configured EC2 instance ──
     if [[ -n "${EC2_INSTANCE_ID:-}" ]] && command -v aws &>/dev/null; then
-        # Extract the target host from ssh args (skip flags and their values).
-        local target="" skip_next=0
-        for arg in "$@"; do
-            if (( skip_next )); then skip_next=0; continue; fi
-            case "$arg" in
-                -[bcDEeFIiJLlmOopQRSWw]) skip_next=1 ;;
-                -*) ;;
-                *) [[ -z "$target" ]] && target="$arg" ;;
-            esac
-        done
-
-        # Resolve the hostname to an IP via ssh config, then compare to EC2 IP.
-        local resolved_ip
-        resolved_ip=$(command ssh -G "${target%%@*}" 2>/dev/null \
-            | awk '$1=="hostname"{print $2; exit}')
-        [[ "$target" == *@* ]] && resolved_ip=$(command ssh -G "${target#*@}" 2>/dev/null \
-            | awk '$1=="hostname"{print $2; exit}')
+        # Use ssh -G so SSH parses its own args and returns the hostname (robust for -v, -F, etc.).
+        local target
+        target=$(command ssh -G "$@" 2>/dev/null | awk '$1=="hostname"{print $2; exit}')
 
         local ec2_ip
         ec2_ip=$(aws ec2 describe-instances \
@@ -376,7 +353,7 @@ ssh() {
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
             --output text 2>/dev/null)
 
-        if [[ "$resolved_ip" == "$ec2_ip" || "$target" == *"$ec2_ip"* ]]; then
+        if [[ -n "$target" && ( "$target" == "$ec2_ip" || "$target" == *"$ec2_ip"* ) ]]; then
             local state
             state=$(aws ec2 describe-instances \
                 --instance-ids "$EC2_INSTANCE_ID" \
@@ -646,20 +623,14 @@ if command -v fzf &>/dev/null; then
     if command -v fd &>/dev/null; then
         export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
         export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-    elif command -v fdfind &>/dev/null; then
-        export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --follow --exclude .git'
-        export FZF_ALT_C_COMMAND='fdfind --type d --hidden --follow --exclude .git'
     fi
     export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND:-}"
 
     # Neutral color scheme (works on light and dark terminals)
     export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --inline-info'
 
-    # Preview with bat if available
     if command -v bat &>/dev/null; then
         export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :500 {}'"
-    elif command -v batcat &>/dev/null; then
-        export FZF_CTRL_T_OPTS="--preview 'batcat --color=always --line-range :500 {}'"
     fi
 fi
 
@@ -670,8 +641,6 @@ ff() {
     local pattern="${1:?usage: ff PATTERN}"
     if command -v fd &>/dev/null; then
         fd -HI -t f --glob "*${pattern}*" .
-    elif command -v fdfind &>/dev/null; then
-        fdfind -HI -t f --glob "*${pattern}*" .
     else
         find . -type f -iname "*${pattern}*" 2>/dev/null
     fi
@@ -771,10 +740,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'  # visible ghost text on both light/dar
 # We define custom widgets later, so do one bind pass after all widget changes.
 ZSH_AUTOSUGGEST_MANUAL_REBIND=1
 
-# Load autosuggestions after fzf-tab to avoid widget conflicts.
-if (( _zsh_autosuggest_loaded )); then
-    source "$_zsh_autosuggest_plugin"
-fi
+# Autosuggestions plugin is sourced at the very end of this file (after fzf-tab and syntax-highlighting).
 
 # Keep autosuggest acceptance explicit: Tab/Right (not Up/Down).
 typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS
@@ -961,6 +927,8 @@ zle -N _tab_accept_or_complete
 # When typing `cd ` + space with an empty argument, auto-open early only when
 # local directory count is small (keeps this useful but non-spammy).
 : "${ZSH_AUTOLIST_CD_EMPTY_MAX:=20}"
+# Minimum characters before auto-list triggers (reduces lag on slow filesystems).
+: "${ZSH_AUTOLIST_MIN_CHARS:=3}"
 typeset -g _auto_list_last_buffer=""
 typeset -gi _auto_list_in_paste=0
 typeset -g _autolist_cd_cache_pwd=""
@@ -1064,10 +1032,12 @@ _maybe_auto_list_choices() {
         return
     fi
 
-    # Don't spam for tiny prefixes or option flags.
+    # Don't spam for tiny prefixes or option flags; respect min chars to reduce lag.
     [[ -n "$_current" ]] || return
+    local -i _min_chars=3
+    [[ "${ZSH_AUTOLIST_MIN_CHARS:-3}" == <-> ]] && _min_chars=$ZSH_AUTOLIST_MIN_CHARS
     if (( ! _is_cd_context )); then
-        (( ${#_current} >= 2 )) || return
+        (( ${#_current} >= _min_chars )) || return
         [[ "$_current" == -* ]] && return
     fi
 
@@ -1289,31 +1259,37 @@ if [[ -o interactive ]] && (( $+functions[_apply_autolist_mode] )); then
     _apply_autolist_mode
 fi
 
-# ── Syntax highlighting (must be last to hook all widgets) ───────────
+# ── Load fzf-tab, syntax-highlighting, autosuggestions (order matters) ──
+# fzf-tab first, then syntax-highlighting, then autosuggestions last so it
+# wraps the final widget set and avoids conflicts with fzf-tab ghost text.
+
+if (( _fzf_tab_loaded )); then
+    source "$_fzf_tab_plugin"
+    zstyle ':fzf-tab:*' fzf-flags '--height=40% --layout=reverse --border'
+    zstyle ':fzf-tab:*' switch-group ',' '.'
+    zstyle ':fzf-tab:*' continuous-trigger '/'
+fi
 
 if (( _zsh_syntax_highlighting_enabled )); then
-    # Don't use $+functions[_zsh_highlight] as a guard: the
-    # zsh-history-substring-search plugin defines a same-named function.
     if [[ -z "${ZSH_HIGHLIGHT_VERSION:-}" ]]; then
         [[ -r "$_zsh_highlight_plugin" ]] && source "$_zsh_highlight_plugin"
     fi
-
     if (( $+functions[_zsh_highlight_highlighter_main_paint] )); then
         typeset -gA ZSH_HIGHLIGHT_STYLES
         ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
         ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=yellow,bold'
         ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'
-
         ZSH_HIGHLIGHT_HIGHLIGHTERS=(main)
     fi
-
-    # Re-wrap any widgets created or reassigned earlier in this file.
     if (( $+functions[_zsh_highlight_bind_widgets] )); then
         _zsh_highlight_bind_widgets
     fi
 fi
 
-# With manual rebind enabled, wrap final widget set once at the very end.
+if (( _zsh_autosuggest_loaded )); then
+    source "$_zsh_autosuggest_plugin"
+fi
+
 if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
     _zsh_autosuggest_bind_widgets
 fi
