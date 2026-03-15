@@ -1255,15 +1255,15 @@ if [[ -o interactive ]]; then
     bindkey -M menuselect '^[OA' up-line-or-history
     bindkey -M menuselect '^[OB' down-line-or-history
 
-    # Right-arrow/End: accept autosuggestion at end of line
+    # Right-arrow/End: move cursor only (autosuggestion accepted only via Tab)
     bindkey '^[[C' forward-char
     bindkey '^[OC' forward-char
     bindkey '^[[F' end-of-line
     bindkey '^[OF' end-of-line
 
-    # Ctrl+Right: accept one word of autosuggestion
+    # Ctrl+Right / Alt+F: move by word (no partial accept of suggestion)
     bindkey '^[[1;5C' forward-word
-    bindkey '^[f'     forward-word            # Alt+F fallback
+    bindkey '^[f'     forward-word
 
     # Ctrl+Z: undo last edit on command line
     bindkey '^Z' undo
@@ -1314,6 +1314,8 @@ fi
 # ── Load fzf-tab, syntax-highlighting, autosuggestions (order matters) ──
 # fzf-tab first, then syntax-highlighting, then autosuggestions last so it
 # wraps the final widget set and avoids conflicts with fzf-tab ghost text.
+# Only Tab accepts autosuggestions (Right/End/Down do not).
+(( _zsh_autosuggest_loaded )) && typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=() ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=()
 
 if (( _fzf_tab_loaded )); then
     source "$_fzf_tab_plugin"
@@ -1363,4 +1365,10 @@ fi
 
 if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
     _zsh_autosuggest_bind_widgets
+fi
+
+# Ensure Tab runs our widget (autosuggest accept + cd drill-down + completion) after all plugins.
+if [[ -o interactive ]] && (( $+widgets[_tab_accept_or_complete] )); then
+    bindkey -M emacs '^I' _tab_accept_or_complete
+    bindkey -M viins '^I' _tab_accept_or_complete
 fi

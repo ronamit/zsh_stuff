@@ -66,8 +66,7 @@ fi
 ## Completion, Autosuggest, and Key Behavior
 
 - `zsh-autosuggestions` shows inline ghost text from history first, with completion as fallback.
-- `Right Arrow` or `End` accepts the full suggestion.
-- `Ctrl+Right` (or `Alt+F`) accepts one word from the suggestion.
+- **Tab** accepts the full suggestion; Right Arrow / End / Down only move the cursor or run history.
 - `fzf-tab` provides interactive fuzzy completion on `Tab`.
 - `Up` / `Down` and `Ctrl+P` / `Ctrl+N` run sticky prefix history search.
 - `Ctrl+Space` accepts the autosuggestion (`Ctrl+@` fallback is also bound for tmux terminals).
