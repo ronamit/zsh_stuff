@@ -1255,13 +1255,14 @@ if [[ -o interactive ]]; then
     bindkey -M menuselect '^[OA' up-line-or-history
     bindkey -M menuselect '^[OB' down-line-or-history
 
-    # Right-arrow/End: move cursor only (autosuggestion accepted only via Tab)
+    # Right arrow: partial-accept one char from suggestion (forward-char in ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS)
+    # End: move to end of line (no full accept)
     bindkey '^[[C' forward-char
     bindkey '^[OC' forward-char
     bindkey '^[[F' end-of-line
     bindkey '^[OF' end-of-line
 
-    # Ctrl+Right / Alt+F: move by word (no partial accept of suggestion)
+    # Ctrl+Right / Alt+F: partial-accept one word from suggestion
     bindkey '^[[1;5C' forward-word
     bindkey '^[f'     forward-word
 
@@ -1314,8 +1315,8 @@ fi
 # ── Load fzf-tab, syntax-highlighting, autosuggestions (order matters) ──
 # fzf-tab first, then syntax-highlighting, then autosuggestions last so it
 # wraps the final widget set and avoids conflicts with fzf-tab ghost text.
-# Only Tab accepts autosuggestions (Right/End/Down do not).
-(( _zsh_autosuggest_loaded )) && typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=() ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=()
+# Only Tab/Ctrl+Space accept full suggestion; Right Arrow partial-accepts one char (forward-char in PARTIAL_ACCEPT_WIDGETS).
+(( _zsh_autosuggest_loaded )) && typeset -ga ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=()
 
 if (( _fzf_tab_loaded )); then
     source "$_fzf_tab_plugin"

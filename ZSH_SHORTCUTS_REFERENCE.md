@@ -23,9 +23,10 @@ bindkey | less
 | `Shift+Tab` | Reverse completion |
 | `Up` / `Down` | Sticky prefix history search (`Down` cycles path completions when current argument is path-like) |
 | `Ctrl+P` / `Ctrl+N` | Sticky prefix history search |
-| `Right Arrow` / `End` | Accept full autosuggestion |
+| `Right Arrow` | Accept one character from autosuggestion |
 | `Ctrl+Right` / `Alt+F` | Accept one word from autosuggestion |
-| `Ctrl+Space` | Accept autosuggestion (`Ctrl+@` is also bound for tmux terminals) |
+| `Tab` / `Ctrl+Space` | Accept full autosuggestion (`Ctrl+@` also bound for tmux) |
+| `End` | Move to end of line |
 | `Ctrl+Z` | Undo last command-line edit |
 
 ## Navigation and File Shortcuts

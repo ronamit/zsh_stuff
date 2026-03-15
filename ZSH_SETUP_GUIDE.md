@@ -55,7 +55,7 @@ Full shortcut list (git aliases/functions, navigation, Python, tmux, fzf, keys):
 
 ## Completions & Autosuggestions
 
-**Ghost suggestions** (inline gray text): From `zsh-autosuggestions`, shown live while you type (history first, then completion fallback). Accept with `Right Arrow`, accept one word with `Ctrl+Right` (or `Alt+F`).
+**Ghost suggestions** (inline gray text): From `zsh-autosuggestions`, shown live while you type (history first, then completion fallback). Accept one character with `Right Arrow`, one word with `Ctrl+Right` (or `Alt+F`). Accept the full suggestion with `Tab` or `Ctrl+Space`.
 
 **Interactive completion menu** (multiple candidates with fuzzy selection): From `fzf-tab` on `Tab`, backed by zsh completion.
 
@@ -73,9 +73,10 @@ For bare `cd `, auto-open is gated by `ZSH_AUTOLIST_CD_EMPTY_MAX` (default `20`)
 | `Tab` / `Shift+Tab` | Next/prev completion |
 | `Up` / `Down` | Prefix history search (`Down` cycles path completions when current argument is path-like) |
 | `Ctrl+P` / `Ctrl+N` | Prefix history search |
-| `Right Arrow` | Accept full autosuggestion |
-| `Ctrl+Right` / `Alt+F` | Accept one word of suggestion |
-| `End` | Accept full autosuggestion |
+| `Right Arrow` | Accept one character from autosuggestion |
+| `Ctrl+Right` / `Alt+F` | Accept one word from autosuggestion |
+| `Tab` / `Ctrl+Space` | Accept full autosuggestion |
+| `End` | Move to end of line |
 | `Ctrl+Space` | Accept autosuggestion (`Ctrl+@` fallback is also bound for tmux terminals) |
 | `Ctrl+Z` | Undo last edit |
 
